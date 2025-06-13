@@ -5,7 +5,7 @@
       "args": [
         "run",
         "--directory",
-        "/Users/isaacibm/GitHub/MCP/get-docs-from-web-mcp",
+        "<current system directory>",
         "main.py"
       ],
       "env": {
