@@ -48,11 +48,17 @@ class WebScraper:
             'iframe', 'noscript', 'svg', 'form', 'button', 'input',
             'meta', 'link', 'img', 'video', 'audio'
         ]
-        # Common non-content classes and IDs
         self.unwanted_classes = [
             'menu', 'navigation', 'sidebar', 'footer', 'header',
             'advertisement', 'banner', 'cookie', 'popup', 'modal',
             'comment', 'social', 'share', 'related', 'recommended'
+        ]
+        self.unwanted_class_patterns = [re.compile(cls, re.IGNORECASE) for cls in self.unwanted_classes]
+        self.non_content_patterns = [
+            re.compile(r'^\s*$'),
+            re.compile(r'^[0-9\s]+$'),
+            re.compile(r'^[A-Z\s]+$'),
+            re.compile(r'cookie|privacy|terms|conditions', re.IGNORECASE)
         ]
         try:
             logger.info("Initializing Chrome WebDriver...")
@@ -61,6 +67,18 @@ class WebScraper:
         except Exception as e:
             logger.error(f"Failed to initialize Chrome WebDriver: {str(e)}")
             self.driver = None
+
+    def _ensure_driver(self):
+        if self.driver:
+            return
+        try:
+            logger.info("Attempting to reinitialize Chrome WebDriver...")
+            self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+            logger.info("Chrome WebDriver reinitialized successfully")
+        except Exception as e:
+            error_msg = f"Failed to initialize Chrome WebDriver: {str(e)}"
+            logger.error(error_msg)
+            raise Exception(error_msg)
 
     def _clean_text(self, text: str) -> str:
         """Clean and normalize text content."""
@@ -79,15 +97,8 @@ class WebScraper:
         # Minimum content length
         if len(text) < 20:
             return False
-        # Check for common non-content patterns
-        non_content_patterns = [
-            r'^\s*$',  # Empty or whitespace only
-            r'^[0-9\s]+$',  # Numbers only
-            r'^[A-Z\s]+$',  # All caps
-            r'cookie|privacy|terms|conditions',  # Common non-content words
-        ]
-        for pattern in non_content_patterns:
-            if re.search(pattern, text, re.IGNORECASE):
+        for pattern in self.non_content_patterns:
+            if pattern.search(text):
                 return False
         return True
 
@@ -99,8 +110,8 @@ class WebScraper:
                 tag.decompose()
 
         # Remove elements with unwanted classes
-        for class_name in self.unwanted_classes:
-            for tag in soup.find_all(class_=re.compile(class_name, re.IGNORECASE)):
+        for class_pattern in self.unwanted_class_patterns:
+            for tag in soup.find_all(class_=class_pattern):
                 tag.decompose()
 
         # Try to find the main content area
@@ -118,15 +129,7 @@ class WebScraper:
 
     def extract_links(self, url: str) -> List[Dict[str, str]]:
         """Extract all links from the webpage."""
-        if not self.driver:
-            try:
-                logger.info("Attempting to reinitialize Chrome WebDriver...")
-                self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-                logger.info("Chrome WebDriver reinitialized successfully")
-            except Exception as e:
-                error_msg = f"Failed to initialize Chrome WebDriver: {str(e)}"
-                logger.error(error_msg)
-                raise Exception(error_msg)
+        self._ensure_driver()
 
         try:
             logger.info(f"Extracting links from URL: {url}")
@@ -168,15 +171,7 @@ class WebScraper:
             raise Exception(error_msg)
 
     def fetch_content(self, url: str) -> str:
-        if not self.driver:
-            try:
-                logger.info("Attempting to reinitialize Chrome WebDriver...")
-                self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
-                logger.info("Chrome WebDriver reinitialized successfully")
-            except Exception as e:
-                error_msg = f"Failed to initialize Chrome WebDriver: {str(e)}"
-                logger.error(error_msg)
-                raise Exception(error_msg)
+        self._ensure_driver()
 
         try:
             logger.info(f"Fetching content from URL: {url}")
