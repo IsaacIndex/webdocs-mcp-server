@@ -1,0 +1,77 @@
+{
+  "mcpServers": {
+    "web-content": {
+      "command": "/Users/isaacibm/.local/bin/uv",
+      "args": [
+        "run",
+        "--directory",
+        "/Users/isaacibm/GitHub/MCP/get-docs-from-web-mcp",
+        "main.py"
+      ],
+      "env": {
+        "PORT": "8000",
+        "DEBUG": "true",
+        "MAX_RETRIES": "3",
+        "TIMEOUT": "30"
+      },
+      "triggers": [
+        "web content",
+        "get web content",
+        "fetch web content",
+        "retrieve web content",
+        "web page",
+        "webpage",
+        "website content",
+        "get website",
+        "fetch website",
+        "retrieve website",
+        "extract links",
+        "get links",
+        "find links",
+        "list links",
+        "ping",
+        "check server"
+      ],
+      "description": "A FastMCP server that fetches and processes web content from specified URLs using Selenium. Supports fetching website content, extracting links, and health checks.",
+      "timeout": 60,
+      "retry": {
+        "maxAttempts": 3,
+        "delay": 1000
+      },
+      "healthCheck": {
+        "endpoint": "/mcp/ping",
+        "interval": 30
+      },
+      "logging": {
+        "level": "info",
+        "file": "mcp.log"
+      },
+      "commands": {
+        "fetch_website": {
+          "description": "Fetch content from a specified URL using Selenium",
+          "parameters": {
+            "url": {
+              "type": "string",
+              "description": "The URL to fetch content from",
+              "required": true
+            }
+          }
+        },
+        "extract_links": {
+          "description": "Extract all links from a specified URL",
+          "parameters": {
+            "url": {
+              "type": "string",
+              "description": "The URL to extract links from",
+              "required": true
+            }
+          }
+        },
+        "ping": {
+          "description": "Check if the server is responsive",
+          "parameters": {}
+        }
+      }
+    }
+  }
+}
