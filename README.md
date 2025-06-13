@@ -19,8 +19,9 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 
 ## Setup
 
-1. Install dependencies using uv:
+1. Create a virtual environment and install dependencies using uv:
 ```bash
+uv venv
 uv pip install -r requirements.txt
 ```
 
@@ -110,4 +111,18 @@ The server includes comprehensive error handling for:
 2. Create a feature branch
 3. Commit your changes
 4. Push to the branch
-5. Create a Pull Request 
+5. Create a Pull Request
+
+## Updating `mcp.json` Path
+
+If you move the project directory, run the helper script to update the
+`mcp.json` configuration:
+
+```bash
+python update_mcp_path.py
+```
+
+The updated JSON is copied to your clipboard so you can replace the content of
+`mcp.json` easily.
+
+
