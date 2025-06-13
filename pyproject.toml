@@ -61,3 +61,7 @@ dependencies = [
   "wsproto==1.2.0",
   "pyperclip==1.8.2"
 ]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"

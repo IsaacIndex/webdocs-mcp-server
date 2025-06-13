@@ -67,6 +67,18 @@ The server will start on `http://localhost:8000` by default.
   ```
 - **Response**: List of all links found on the webpage
 
+#### Download PDFs from Text
+- **URL**: `/mcp`
+- **Method**: POST
+- **Command**: `download_pdfs_from_text`
+- **Parameters**:
+  ```json
+  {
+    "text": "Check out https://example.com/sample.pdf"
+  }
+  ```
+- **Response**: Paths to the downloaded PDF files
+
 #### Ping
 - **URL**: `/mcp`
 - **Method**: POST
