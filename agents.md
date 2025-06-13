@@ -24,9 +24,6 @@ uv pip install -r requirements.txt
 
 # Add a new package
 uv pip install package_name
-
-# After adding a new package, update requirements.txt
-uv pip freeze > requirements.txt
 ```
 
 ## Project Structure
