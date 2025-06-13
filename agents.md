@@ -91,6 +91,7 @@ The codebase implements comprehensive error handling for:
 3. Follow the existing error handling patterns
 4. Maintain logging consistency
 5. Document new endpoints in the README.md
+6. After making changes, check if `mcp.json` or `README.md` need updates. Update `mcp.json` when endpoints or trigger words change and keep the README in sync.
 
 ## Testing
 
