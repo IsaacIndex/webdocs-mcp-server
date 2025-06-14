@@ -8,6 +8,7 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 - Link extraction with full URL resolution
 - Language detection
 - Headless Chrome browser automation
+- Open URLs in your existing browser session
 - FastAPI-based REST API
 - MCP protocol implementation
 
@@ -72,6 +73,18 @@ The server will start on `http://localhost:8000` by default.
 - **Method**: POST
 - **Command**: `ping`
 - **Response**: Server status and version information
+
+#### Open Browser
+- **URL**: `/mcp`
+- **Method**: POST
+- **Command**: `open_browser`
+- **Parameters**:
+  ```json
+  {
+    "url": "https://example.com"
+  }
+  ```
+- **Response**: Confirmation that the URL was opened using your browser session
 
 ### Health Check
 - **URL**: `/health`
