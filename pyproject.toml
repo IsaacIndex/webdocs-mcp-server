@@ -62,3 +62,7 @@ dependencies = [
   "pyperclip==1.8.2",
   "flake8==7.2.0"
 ]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"

@@ -31,6 +31,10 @@
         "list links",
         "open browser",
         "open website",
+        "download pdfs",
+        "download pdf links",
+        "download pdfs from text",
+        "get pdfs",
         "ping",
         "check server"
       ],
@@ -65,6 +69,16 @@
             "url": {
               "type": "string",
               "description": "The URL to extract links from",
+              "required": true
+            }
+          }
+        },
+        "download_pdfs_from_text": {
+          "description": "Download all PDF links found in a block of text",
+          "parameters": {
+            "text": {
+              "type": "string",
+              "description": "Text that may contain PDF links",
               "required": true
             }
           }
