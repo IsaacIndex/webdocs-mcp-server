@@ -29,6 +29,8 @@
         "get links",
         "find links",
         "list links",
+        "open browser",
+        "open website",
         "download pdfs",
         "download pdf links",
         "download pdfs from text",
@@ -84,6 +86,16 @@
         "ping": {
           "description": "Check if the server is responsive",
           "parameters": {}
+        },
+        "open_browser": {
+          "description": "Open a URL in the user's browser with their cookies",
+          "parameters": {
+            "url": {
+              "type": "string",
+              "description": "The URL to open",
+              "required": true
+            }
+          }
         }
       }
     }

@@ -13,6 +13,7 @@ import re
 import time
 import os
 from urllib.parse import urljoin
+import sys
 import requests
 
 # Configure logging
@@ -34,10 +35,27 @@ chrome_options.add_argument('--no-sandbox')
 chrome_options.add_argument('--disable-dev-shm-usage')
 chrome_options.add_argument('--disable-gpu')
 chrome_options.add_argument('--window-size=1920,1080')
-chrome_options.add_argument('--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36')
+user_agent = (
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) '
+    'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+)
+chrome_options.add_argument(f'--user-agent={user_agent}')
 
 # Initialize FastMCP
 mcp = FastMCP("Web Scraper MCP 🚀")
+
+
+def _get_chrome_profile_path() -> str:
+    """Return the default Chrome user profile path based on the OS."""
+    home = os.path.expanduser("~")
+    if sys.platform == "darwin":
+        return os.path.join(home, "Library", "Application Support", "Google", "Chrome")
+    if sys.platform.startswith("linux"):
+        return os.path.join(home, ".config", "google-chrome")
+    if sys.platform.startswith("win"):
+        return os.path.join(home, "AppData", "Local", "Google", "Chrome", "User Data")
+    raise RuntimeError("Unsupported operating system for locating Chrome profile")
+
 
 class WebScraper:
     def __init__(self):
@@ -138,33 +156,33 @@ class WebScraper:
                 EC.presence_of_element_located(("tag name", "body"))
             )
             time.sleep(2)  # Shorter wait time for links
-            
+
             # Get the page source and parse with BeautifulSoup
             html_content = self.driver.page_source
             soup = BeautifulSoup(html_content, 'html.parser')
-            
+
             # Extract all links
             links = []
             for a_tag in soup.find_all('a', href=True):
                 href = a_tag['href']
                 text = a_tag.get_text(strip=True)
-                
+
                 # Skip empty links and javascript:void(0)
                 if not href or href.startswith('javascript:'):
                     continue
-                    
+
                 # Make relative URLs absolute
                 if not href.startswith(('http://', 'https://')):
                     href = urljoin(url, href)
-                
+
                 links.append({
                     "url": href,
                     "text": text if text else href
                 })
-            
+
             logger.info(f"Successfully extracted {len(links)} links from {url}")
             return links
-            
+
         except Exception as e:
             error_msg = f"Error extracting links from {url}: {str(e)}"
             logger.error(error_msg)
@@ -180,37 +198,37 @@ class WebScraper:
                 EC.presence_of_element_located(("tag name", "body"))
             )
             time.sleep(5)
-            
+
             # Get the page source and parse with BeautifulSoup
             html_content = self.driver.page_source
             soup = BeautifulSoup(html_content, 'html.parser')
-            
+
             # Extract main content
             text = self._extract_main_content(soup)
-            
+
             # Clean and process the text
             lines = text.split('\n')
             cleaned_lines = []
-            
+
             for line in lines:
                 cleaned_line = self._clean_text(line)
                 if self._is_relevant_content(cleaned_line):
                     cleaned_lines.append(cleaned_line)
-            
+
             # Join lines and remove duplicate content
             text = '\n'.join(cleaned_lines)
             text = re.sub(r'\n\s*\n', '\n\n', text)  # Remove multiple newlines
-            
+
             # Optional: Detect language and filter non-English content
             try:
                 if detect(text) != 'en':
                     logger.warning(f"Non-English content detected from {url}")
             except LangDetectException:
                 logger.warning(f"Could not detect language for content from {url}")
-            
+
             logger.info(f"Successfully extracted and cleaned text content from {url}")
             return text
-            
+
         except Exception as e:
             error_msg = f"Error fetching content from {url}: {str(e)}"
             logger.error(error_msg)
@@ -224,8 +242,29 @@ class WebScraper:
             except Exception as e:
                 logger.error(f"Error during WebDriver cleanup: {str(e)}")
 
+
+@mcp.tool
+def open_in_user_browser(url: str) -> Dict[str, Any]:
+    """Open a URL in the user's regular Chrome profile."""
+    try:
+        profile = _get_chrome_profile_path()
+        options = Options()
+        options.add_argument(f"--user-data-dir={profile}")
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver.get(url)
+        return {
+            "status": "success",
+            "message": f"Opened {url} in the user browser",
+            "data": None,
+        }
+    except Exception as e:
+        logger.error(f"Failed to open browser for {url}: {str(e)}")
+        return {"status": "error", "message": str(e), "data": None}
+
+
 # Initialize WebScraper
 scraper = WebScraper()
+
 
 @mcp.tool
 def scrape_website(url: str) -> Dict[str, Any]:
@@ -245,6 +284,7 @@ def scrape_website(url: str) -> Dict[str, Any]:
             "data": None
         }
 
+
 @mcp.tool
 def extract_links(url: str) -> Dict[str, Any]:
     """Extract all links from a specified URL"""
@@ -262,6 +302,7 @@ def extract_links(url: str) -> Dict[str, Any]:
             "message": str(e),
             "data": None
         }
+
 
 @mcp.tool
 def download_pdfs_from_text(text: str) -> Dict[str, Any]:
@@ -307,8 +348,9 @@ def ping() -> Dict[str, Any]:
         "data": {"timestamp": time.time()}
     }
 
+
 if __name__ == "__main__":
     try:
         mcp.run()
     finally:
-        scraper.cleanup() 
+        scraper.cleanup()
