@@ -21,9 +21,6 @@ This project uses `uv` as its package manager, which is a modern, fast Python pa
 # Install dependencies
 uv venv
 uv pip install -r requirements.txt
-
-# Add a new package
-uv pip install package_name
 ```
 
 ## Project Structure
