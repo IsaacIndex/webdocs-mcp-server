@@ -5,19 +5,20 @@ os.makedirs(os.path.join(os.path.expanduser("~"), "Downloads"), exist_ok=True)
 
 from langchain_community.chat_models import ChatOllama  # noqa: E402
 from langchain_core.messages import HumanMessage  # noqa: E402
+from langchain_core.tools import tool  # noqa: E402
 from langgraph.prebuilt import create_react_agent  # noqa: E402
 
 import main  # noqa: E402
 
 llm = ChatOllama(model="llama3")
 
-# Use tools defined in main.py
+# Use tools defined in main.py and convert them to LangChain tools
 TOOLS = [
-    main.open_in_user_browser,
-    main.scrape_website,
-    main.extract_links,
-    main.download_pdfs_from_text,
-    main.ping,
+    tool(main.open_in_user_browser.fn),
+    tool(main.scrape_website.fn),
+    tool(main.extract_links.fn),
+    tool(main.download_pdfs_from_text.fn),
+    tool(main.ping.fn),
 ]
 
 agent = create_react_agent(llm, TOOLS)
