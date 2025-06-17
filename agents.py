@@ -3,7 +3,7 @@ import os
 # Ensure logging directory exists before importing main
 os.makedirs(os.path.join(os.path.expanduser("~"), "Downloads"), exist_ok=True)
 
-from langchain_community.chat_models import ChatOllama  # noqa: E402
+from langchain_ollama import ChatOllama  # noqa: E402
 from langchain_core.messages import HumanMessage  # noqa: E402
 from langchain_core.tools import tool  # noqa: E402
 from langgraph.prebuilt import create_react_agent  # noqa: E402
