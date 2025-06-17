@@ -250,6 +250,7 @@ def open_in_user_browser(url: str) -> Dict[str, Any]:
         profile = _get_chrome_profile_path()
         options = Options()
         options.add_argument(f"--user-data-dir={profile}")
+        options.headless = False
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.get(url)
         return {

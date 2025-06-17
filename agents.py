@@ -10,7 +10,7 @@ from langgraph.prebuilt import create_react_agent  # noqa: E402
 
 import main  # noqa: E402
 
-llm = ChatOllama(model="llama3")
+llm = ChatOllama(model="qwen3:4b")
 
 # Use tools defined in main.py and convert them to LangChain tools
 TOOLS = [
