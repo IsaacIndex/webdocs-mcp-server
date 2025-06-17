@@ -339,6 +339,7 @@ def download_pdfs_from_text(text: str) -> Dict[str, Any]:
             "data": None,
         }
 
+
 @mcp.tool
 def ping() -> Dict[str, Any]:
     """Check if the server is responsive"""
