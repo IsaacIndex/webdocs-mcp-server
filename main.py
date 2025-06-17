@@ -1,7 +1,8 @@
 from fastmcp import FastMCP
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import logging
 from selenium import webdriver
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
@@ -59,7 +60,7 @@ def _get_chrome_profile_path() -> str:
 
 class WebScraper:
     def __init__(self) -> None:
-        self.driver = None
+        self.driver: Optional[WebDriver] = None
         # Elements to remove from the content
         self.unwanted_elements = [
             'script', 'style', 'nav', 'footer', 'header', 'aside',
@@ -148,6 +149,7 @@ class WebScraper:
     def extract_links(self, url: str) -> List[Dict[str, str]]:
         """Extract all links from the webpage."""
         self._ensure_driver()
+        assert self.driver is not None
 
         try:
             logger.info(f"Extracting links from URL: {url}")
@@ -190,6 +192,7 @@ class WebScraper:
 
     def fetch_content(self, url: str) -> str:
         self._ensure_driver()
+        assert self.driver is not None
 
         try:
             logger.info(f"Fetching content from URL: {url}")
