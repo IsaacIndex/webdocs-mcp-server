@@ -3,7 +3,7 @@ import os
 import pyperclip
 
 
-def update_mcp_path():
+def update_mcp_path() -> None:
     # Get current directory
     current_dir = os.getcwd()
 

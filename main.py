@@ -58,7 +58,7 @@ def _get_chrome_profile_path() -> str:
 
 
 class WebScraper:
-    def __init__(self):
+    def __init__(self) -> None:
         self.driver = None
         # Elements to remove from the content
         self.unwanted_elements = [
@@ -86,7 +86,7 @@ class WebScraper:
             logger.error(f"Failed to initialize Chrome WebDriver: {str(e)}")
             self.driver = None
 
-    def _ensure_driver(self):
+    def _ensure_driver(self) -> None:
         if self.driver:
             return
         try:
@@ -234,7 +234,7 @@ class WebScraper:
             logger.error(error_msg)
             raise Exception(error_msg)
 
-    def cleanup(self):
+    def cleanup(self) -> None:
         if self.driver:
             try:
                 self.driver.quit()
