@@ -166,7 +166,11 @@ class WebScraper:
             # Extract all links
             links = []
             for a_tag in soup.find_all('a', href=True):
-                href = a_tag['href']
+                href_value = a_tag.get("href")
+                if isinstance(href_value, list):
+                    href = href_value[0] if href_value else ""
+                else:
+                    href = href_value or ""
                 text = a_tag.get_text(strip=True)
 
                 # Skip empty links and javascript:void(0)
