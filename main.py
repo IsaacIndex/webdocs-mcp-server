@@ -166,7 +166,9 @@ class WebScraper:
             # Extract all links
             links = []
             for a_tag in soup.find_all('a', href=True):
-                href = a_tag['href']
+                # bs4 typing may mark result as a list, so use get to avoid type
+                # errors when accessing the href attribute
+                href = a_tag.get('href', '')
                 text = a_tag.get_text(strip=True)
 
                 # Skip empty links and javascript:void(0)
