@@ -169,6 +169,11 @@ class WebScraper:
                 # bs4 typing may mark result as a list, so use get to avoid type
                 # errors when accessing the href attribute
                 href = a_tag.get('href', '')
+                href_value = a_tag.get('href', '')
+                if isinstance(href_value, list):
+                    href = href_value[0] if href_value else ""
+                else:
+                    href = href_value or ""
                 text = a_tag.get_text(strip=True)
 
                 # Skip empty links and javascript:void(0)
