@@ -8,7 +8,7 @@ from selenium.webdriver.chrome.options import Options
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from langdetect import detect, LangDetectException
 import re
 import time
@@ -166,14 +166,16 @@ class WebScraper:
             # Extract all links
             links = []
             for a_tag in soup.find_all('a', href=True):
-                # bs4 typing may mark result as a list, so use get to avoid type
-                # errors when accessing the href attribute
-                href = a_tag.get('href', '')
+                # Ensure the element is a Tag before accessing attributes
+                if not isinstance(a_tag, Tag):
+                    continue
+
                 href_value = a_tag.get('href', '')
                 if isinstance(href_value, list):
                     href = href_value[0] if href_value else ""
                 else:
                     href = href_value or ""
+
                 text = a_tag.get_text(strip=True)
 
                 # Skip empty links and javascript:void(0)
