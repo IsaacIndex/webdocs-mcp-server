@@ -262,12 +262,15 @@ def open_in_user_browser(url: str) -> Dict[str, Any]:
         profile = _get_chrome_profile_path()
         options = Options()
         options.add_argument(f"--user-data-dir={profile}")
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        driver = webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()), options=options
+        )
         driver.get(url)
+        page_source = driver.page_source
         return {
             "status": "success",
             "message": f"Opened {url} in the user browser",
-            "data": None,
+            "data": page_source,
         }
     except Exception as e:
         logger.error(f"Failed to open browser for {url}: {str(e)}")
