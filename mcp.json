@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "web-content": {
-      "command": "/Users/isaacibm/.local/bin/uv",
+      "command": "uv",
       "args": [
         "run",
         "--directory",
