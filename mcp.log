@@ -1,4 +1,0 @@
-2025-05-29 18:37:45,235 - WDM - INFO - ====== WebDriver manager ======
-2025-05-29 18:37:45,479 - WDM - INFO - Get LATEST chromedriver version for google-chrome
-2025-05-29 18:37:45,883 - WDM - INFO - Get LATEST chromedriver version for google-chrome
-2025-05-29 18:37:46,035 - WDM - INFO - Driver [/Users/isaacibm/.wdm/drivers/chromedriver/mac64/136.0.7103.113/chromedriver-mac-arm64/chromedriver] found in cache
