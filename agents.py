@@ -7,6 +7,9 @@ from langchain_ollama import ChatOllama  # noqa: E402
 from langchain_core.messages import HumanMessage  # noqa: E402
 from langchain_core.tools import tool  # noqa: E402
 from langgraph.prebuilt import create_react_agent  # noqa: E402
+from fastapi import FastAPI  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+import uvicorn  # noqa: E402
 
 import main  # noqa: E402
 
@@ -31,8 +34,30 @@ def run(query: str) -> str:
     return messages[-1].content if messages else ""
 
 
-if __name__ == "__main__":
-    import sys
+app = FastAPI()
 
-    question = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else input("Query: ")
-    print(run(question))
+
+class Query(BaseModel):
+    query: str
+
+
+@app.post("/agent")
+def query_agent(payload: Query) -> dict[str, str]:
+    """Run the LangChain agent with the provided query."""
+    response = run(payload.query)
+    return {"response": response}
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--serve", action="store_true", help="run as http server")
+    parser.add_argument("query", nargs="*", help="query to run when not serving")
+    args = parser.parse_args()
+
+    if args.serve:
+        uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8001")))
+    else:
+        question = " ".join(args.query) if args.query else input("Query: ")
+        print(run(question))
