@@ -31,8 +31,15 @@ def run(query: str) -> str:
     return messages[-1].content if messages else ""
 
 
+def stream(query: str) -> None:
+    """Stream response tokens for the given query."""
+    for chunk in agent.stream({"messages": [HumanMessage(content=query)]}):
+        print(chunk.content or "", end="", flush=True)
+    print()
+
+
 if __name__ == "__main__":
     import sys
 
     question = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else input("Query: ")
-    print(run(question))
+    stream(question)
