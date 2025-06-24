@@ -11,6 +11,7 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 - Open URLs in your existing browser session
 - FastAPI-based REST API
 - MCP protocol implementation
+- LLM-powered agent endpoint for custom queries
 
 ## Prerequisites
 
@@ -39,6 +40,12 @@ python main.py
 ```
 
 The server will start on `http://localhost:8000` by default.
+
+To run the agent endpoint:
+```bash
+python agents.py --serve
+```
+This starts another server on `http://localhost:8001` by default.
 
 ## API Endpoints
 
@@ -97,6 +104,17 @@ The server will start on `http://localhost:8000` by default.
   }
   ```
 - **Response**: Confirmation that the URL was opened using your browser session
+
+#### Query Agent
+- **URL**: `/agent`
+- **Method**: POST
+- **Body**:
+  ```json
+  {
+    "query": "Your question here"
+  }
+  ```
+- **Response**: Agent-generated answer
 
 ### Health Check
 - **URL**: `/health`
