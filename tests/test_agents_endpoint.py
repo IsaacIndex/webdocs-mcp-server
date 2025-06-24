@@ -3,7 +3,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-import importlib
+import importlib.util
 import pytest
 
 required_modules = [
