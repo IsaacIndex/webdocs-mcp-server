@@ -11,6 +11,7 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 - Open URLs in your existing browser session
 - FastAPI-based REST API
 - MCP protocol implementation
+- LLM-powered agent endpoint for custom queries
 
 ## Prerequisites
 
