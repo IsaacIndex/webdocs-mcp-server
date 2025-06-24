@@ -19,13 +19,20 @@ for module in required_modules:
         pytest.skip(f"{module} not available", allow_module_level=True)
 
 import agents  # noqa: E402
-from fastapi.testclient import TestClient  # noqa: E402
+import httpx  # noqa: E402
+from httpx import ASGITransport  # noqa: E402
 
 def test_agent_endpoint(monkeypatch):
     def fake_run(query: str) -> str:
         return "dummy response"
     monkeypatch.setattr(agents, "run", fake_run)
-    client = TestClient(agents.app)
-    resp = client.post("/agent", json={"query": "hello"})
-    assert resp.status_code == 200
-    assert resp.json() == {"response": "dummy response"}
+
+    async def request():
+        transport = ASGITransport(app=agents.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+            resp = await client.post("/agent", json={"query": "hello"})
+            assert resp.status_code == 200
+            assert resp.json() == {"response": "dummy response"}
+
+    import asyncio
+    asyncio.run(request())
