@@ -33,8 +33,14 @@ def run(query: str) -> str:
 
 def stream(query: str) -> None:
     """Stream response tokens for the given query."""
-    for chunk in agent.stream({"messages": [HumanMessage(content=query)]}):
-        print(chunk.content or "", end="", flush=True)
+    for chunk in agent.stream({"messages": [HumanMessage(content=query)]}, stream_mode="updates"):
+        messages = chunk.get("messages") if isinstance(chunk, dict) else None
+        if not messages:
+            continue
+        last = messages[-1] if isinstance(messages, list) else messages
+        content = getattr(last, "content", None)
+        if content:
+            print(content, end="", flush=True)
     print()
 
 
