@@ -1,7 +1,7 @@
 [project]
 name = "webdocs-mcp-server"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 description = "Converted from requirements.txt"
 authors = ["Your Name <your.email@example.com>"]
 dependencies = [
@@ -83,4 +83,4 @@ dependencies = [
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py311"

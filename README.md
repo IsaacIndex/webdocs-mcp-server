@@ -14,7 +14,7 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 
 ## Prerequisites
 
-- Python 3.8+
+- Python 3.11+
 - Chrome browser installed
 - uv package manager
 
