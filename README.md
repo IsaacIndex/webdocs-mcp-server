@@ -35,7 +35,7 @@ PORT=8000
 
 Start the server:
 ```bash
-python main.py
+python main.py [--log-level info|debug|warning|error|critical]
 ```
 
 The server will start on `http://localhost:8000` by default.
@@ -114,6 +114,7 @@ Logs are written to `~/Downloads/mcp.log` and include:
 - Server startup/shutdown events
 - Web scraping operations
 - Error messages and exceptions
+You can adjust the verbosity with the `--log-level` flag when starting the server.
 
 ## Project Structure
 

@@ -1,6 +1,7 @@
 from fastmcp import FastMCP
 from typing import Dict, Any, List, Optional
 import logging
+import argparse
 from selenium import webdriver
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.chrome.service import Service
@@ -18,9 +19,18 @@ import sys
 import requests
 
 # Configure logging
+parser = argparse.ArgumentParser(description="Web Scraper MCP Server")
+parser.add_argument(
+    "--log-level",
+    default="INFO",
+    help="Logging level (debug, info, warning, error, critical)"
+)
+args, _ = parser.parse_known_args()
+
 log_file = os.path.join(os.path.expanduser("~"), "Downloads", "mcp.log")
+log_level = getattr(logging, args.log_level.upper(), logging.INFO)
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(),
