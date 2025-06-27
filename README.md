@@ -118,6 +118,17 @@ Logs are written to `~/Downloads/mcp.log` and include:
 - Error messages and exceptions
 You can adjust the verbosity with the `--log-level` flag when starting the server.
 
+## Agent CLI
+
+Use `agents.py` to chat with the model directly. Streaming output relies on the
+`create_react_agent` streaming API described in the `LangGraph streaming docs <https://python.langchain.com/docs/guides/langgraph/streaming>`_.
+For information about Ollama's client parameters see the `Ollama API docs <https://github.com/jmorganca/ollama/blob/main/docs/api.md>`_.
+
+```bash
+python agents.py "your question"  # returns a single response
+python agents.py "your question" --stream  # stream tokens to the console
+```
+
 ## Project Structure
 
 - `main.py`: Core server implementation and MCP endpoints
