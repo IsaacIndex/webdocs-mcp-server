@@ -17,6 +17,7 @@ import os
 from urllib.parse import urljoin
 import sys
 import requests
+import shutil
 
 # Configure logging
 parser = argparse.ArgumentParser(description="Web Scraper MCP Server")
@@ -68,6 +69,25 @@ def _get_chrome_profile_path() -> str:
     raise RuntimeError("Unsupported operating system for locating Chrome profile")
 
 
+def _get_chrome_binary() -> Optional[str]:
+    """Return the Chrome executable path or None if not found."""
+    env_binary = os.getenv("CHROME_BINARY")
+    if env_binary and os.path.exists(env_binary):
+        return env_binary
+
+    candidates = [
+        shutil.which("google-chrome"),
+        shutil.which("chromium-browser"),
+        shutil.which("chrome"),
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    ]
+
+    for path in candidates:
+        if path and os.path.exists(path):
+            return path
+    return None
+
+
 class WebScraper:
     def __init__(self) -> None:
         self.driver: Optional[WebDriver] = None
@@ -90,8 +110,18 @@ class WebScraper:
             re.compile(r'cookie|privacy|terms|conditions', re.IGNORECASE)
         ]
         try:
+            binary = _get_chrome_binary()
+            if binary:
+                chrome_options.binary_location = binary
+                logger.info(f"Using Chrome binary at {binary}")
+            else:
+                logger.warning("Chrome binary not found; relying on default discovery")
+
             logger.info("Initializing Chrome WebDriver...")
-            self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+            self.driver = webdriver.Chrome(
+                service=Service(ChromeDriverManager().install()),
+                options=chrome_options,
+            )
             logger.info("Chrome WebDriver initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Chrome WebDriver: {str(e)}")
@@ -102,7 +132,17 @@ class WebScraper:
             return
         try:
             logger.info("Attempting to reinitialize Chrome WebDriver...")
-            self.driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+            binary = _get_chrome_binary()
+            if binary:
+                chrome_options.binary_location = binary
+                logger.info(f"Using Chrome binary at {binary}")
+            else:
+                logger.warning("Chrome binary not found; relying on default discovery")
+
+            self.driver = webdriver.Chrome(
+                service=Service(ChromeDriverManager().install()),
+                options=chrome_options,
+            )
             logger.info("Chrome WebDriver reinitialized successfully")
         except Exception as e:
             error_msg = f"Failed to initialize Chrome WebDriver: {str(e)}"

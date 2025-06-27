@@ -16,6 +16,8 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 
 - Python 3.11+
 - Chrome browser installed
+- If Chrome is not in your PATH, set the `CHROME_BINARY` environment variable to
+  the full path of the Chrome executable
 - uv package manager
 
 ## Setup
