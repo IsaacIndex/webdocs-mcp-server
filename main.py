@@ -3,11 +3,6 @@ import logging
 import os
 
 from tools import mcp, scraper
-import tools.open_in_user_browser  # register tool  # noqa: F401
-import tools.scrape_website  # noqa: F401
-import tools.extract_links  # noqa: F401
-import tools.download_pdfs_from_text  # noqa: F401
-import tools.ping  # noqa: F401
 
 parser = argparse.ArgumentParser(description="Web Scraper MCP Server")
 parser.add_argument(
