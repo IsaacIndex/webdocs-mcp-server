@@ -1,6 +1,6 @@
 import os
 
-# Ensure logging directory exists before importing main
+# Ensure logging directory exists before importing tools
 os.makedirs(os.path.join(os.path.expanduser("~"), "Downloads"), exist_ok=True)
 
 from langchain_ollama import ChatOllama  # noqa: E402
@@ -9,18 +9,23 @@ from langchain_core.tools import tool  # noqa: E402
 from langgraph.prebuilt import create_react_agent  # noqa: E402
 from ollama import Client  # noqa: E402
 
-import main  # noqa: E402
+from tools import (  # noqa: E402
+    open_in_user_browser,
+    scrape_website,
+    extract_links,
+    download_pdfs_from_text,
+    ping,
+)
 
 llm = ChatOllama(model="qwen3:4b")
 client = Client()
 
-# Use tools defined in main.py and convert them to LangChain tools
 TOOLS = [
-    tool(main.open_in_user_browser.fn),
-    tool(main.scrape_website.fn),
-    tool(main.extract_links.fn),
-    tool(main.download_pdfs_from_text.fn),
-    tool(main.ping.fn),
+    tool(open_in_user_browser.fn),
+    tool(scrape_website.fn),
+    tool(extract_links.fn),
+    tool(download_pdfs_from_text.fn),
+    tool(ping.fn),
 ]
 
 agent = create_react_agent(llm, TOOLS)
