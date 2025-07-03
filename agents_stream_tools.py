@@ -25,6 +25,9 @@ TOOL_MAP: Dict[str, Callable[..., Any]] = {
 def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
     """Invoke a tool by name and return its result."""
     func = TOOL_MAP.get(name)
+    print('Calling function:', name)
+    print('Arguments:', args)
+    print()
     if not func:
         return {"status": "error", "message": f"unknown tool {name}", "data": None}
     try:
