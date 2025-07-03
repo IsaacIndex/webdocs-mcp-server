@@ -5,6 +5,7 @@ from .scrape_website import scrape_website
 from .extract_links import extract_links
 from .download_pdfs_from_text import download_pdfs_from_text
 from .ping import ping
+from .react_browser import react_browser_task
 
 __all__ = [
     "mcp",
@@ -14,4 +15,5 @@ __all__ = [
     "extract_links",
     "download_pdfs_from_text",
     "ping",
+    "react_browser_task",
 ]
