@@ -10,12 +10,12 @@ logger = logging.getLogger(__name__)
 
 @mcp.tool
 def open_in_user_browser(url: str) -> Dict[str, Any]:
-    """Open a URL in the user's regular Chrome profile."""
+    """Open a URL in the user's regular Chrome profile. the url MUST start with https://, prepend if not available"""
     try:
         profile = _get_chrome_profile_path()
         options = Options()
-        options.add_argument(f"--user-data-dir={profile}")
-        driver = create_driver(options)
+        # options.add_argument(f"--user-data-dir={profile}")
+        driver = create_driver()
         driver.get(url)
         page_source = driver.page_source
         return {
