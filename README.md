@@ -9,6 +9,7 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 - Language detection
 - Headless Chrome browser automation
 - Open URLs in your existing browser session
+- Multi-step website actions with Playwright
 - FastAPI-based REST API
 - MCP protocol implementation
 
@@ -111,6 +112,19 @@ python agents_stream_tools.py "your question here"
   }
   ```
 - **Response**: Confirmation that the URL was opened using your browser session
+
+#### React Browser Task
+- **URL**: `/mcp`
+- **Method**: POST
+- **Command**: `react_browser_task`
+- **Parameters**:
+  ```json
+  {
+    "url": "https://example.com",
+    "goal": "Click the next button and return the page text"
+  }
+  ```
+- **Response**: Final page content after completing the goal
 
 ### Health Check
 - **URL**: `/health`

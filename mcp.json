@@ -36,7 +36,8 @@
         "download pdfs from text",
         "get pdfs",
         "ping",
-        "check server"
+        "check server",
+        "react browser"
       ],
       "description": "A FastMCP server that fetches and processes web content from specified URLs using Selenium. Supports fetching website content, extracting links, and health checks.",
       "timeout": 60,
@@ -93,6 +94,21 @@
             "url": {
               "type": "string",
               "description": "The URL to open",
+              "required": true
+            }
+          }
+        },
+        "react_browser_task": {
+          "description": "Use a Playwright reAct agent to interact with a website",
+          "parameters": {
+            "url": {
+              "type": "string",
+              "description": "Starting URL",
+              "required": true
+            },
+            "goal": {
+              "type": "string",
+              "description": "Task description for the agent",
               "required": true
             }
           }
