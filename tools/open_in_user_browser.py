@@ -3,7 +3,7 @@ import logging
 from selenium.webdriver.chrome.options import Options
 
 from .mcp import mcp
-from .webscraper import _get_chrome_profile_path, create_driver
+from .webscraper import chrome_options, create_driver
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +12,11 @@ logger = logging.getLogger(__name__)
 def open_in_user_browser(url: str) -> Dict[str, Any]:
     """Open a URL in the user's regular Chrome profile. the url MUST start with https://, prepend if not available"""
     try:
-        profile = _get_chrome_profile_path()
         options = Options()
-        # options.add_argument(f"--user-data-dir={profile}")
-        driver = create_driver()
+        for arg in chrome_options.arguments:
+            if arg != "--headless":
+                options.add_argument(arg)
+        driver = create_driver(opts=options)
         driver.get(url)
         page_source = driver.page_source
         return {
