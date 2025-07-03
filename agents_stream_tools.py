@@ -70,6 +70,10 @@ def run(query: str) -> None:
 
 if __name__ == "__main__":
     import sys
+    from tools.webscraper import scraper
 
     query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else input("Query: ")
-    run(query)
+    try:
+        run(query)
+    finally:
+        scraper.cleanup()
