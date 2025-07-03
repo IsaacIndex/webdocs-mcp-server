@@ -37,7 +37,7 @@ PORT=8000
 
 Start the server:
 ```bash
-python main.py [--log-level info|debug|warning|error|critical]
+python mcp_server.py [--log-level info|debug|warning|error|critical]
 ```
 
 The server will start on `http://localhost:8000` by default.
@@ -121,7 +121,7 @@ By default, logs use the `warning` level.
 
 ## Project Structure
 
-- `main.py`: Core server implementation and MCP endpoints
+- `mcp_server.py`: Core server implementation and MCP endpoints
 - `mcp.json`: MCP configuration file
 - `requirements.txt`: Python dependencies
 - `pyproject.toml`: Project metadata and build configuration

@@ -27,7 +27,7 @@ uv pip install -r requirements.txt
 
 ```
 .
-├── main.py           # Core server implementation and MCP endpoints
+├── mcp_server.py     # Core server implementation and MCP endpoints
 ├── mcp.json         # MCP configuration
 ├── requirements.txt  # Python dependencies
 ├── pyproject.toml   # Project metadata
@@ -36,7 +36,7 @@ uv pip install -r requirements.txt
 
 ## Key Components
 
-### 1. MCP Endpoints (`main.py`)
+### 1. MCP Endpoints (`mcp_server.py`)
 - `/mcp` endpoint handling:
   - `scrape_website`: Extracts and cleans web content
   - `extract_links`: Retrieves all links from a webpage
@@ -62,7 +62,7 @@ uv pip install -r requirements.txt
 
 ### Running the Server
 ```bash
-python main.py
+python mcp_server.py
 ```
 Server starts at `http://localhost:8000`
 
