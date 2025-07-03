@@ -1,7 +1,6 @@
 import logging
 import os
 import re
-import sys
 import shutil
 import time
 from typing import Optional, List, Dict
