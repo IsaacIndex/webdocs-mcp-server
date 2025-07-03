@@ -30,6 +30,7 @@ user_agent = (
 )
 chrome_options.add_argument(f'--user-agent={user_agent}')
 
+
 def _get_chrome_binary() -> Optional[str]:
     """Return the Chrome executable path or None if not found."""
     env_binary = os.getenv("CHROME_BINARY")

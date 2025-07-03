@@ -117,6 +117,7 @@ Logs are written to `~/Downloads/mcp.log` and include:
 - Web scraping operations
 - Error messages and exceptions
 You can adjust the verbosity with the `--log-level` flag when starting the server.
+By default, logs use the `warning` level.
 
 ## Project Structure
 

@@ -49,7 +49,7 @@
         "interval": 30
       },
       "logging": {
-        "level": "info",
+        "level": "warning",
         "file": "mcp.log"
       },
       "commands": {
