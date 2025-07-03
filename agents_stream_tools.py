@@ -1,6 +1,7 @@
 import json
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
+from rich.console import Console
 from ollama import chat, ChatResponse
 
 from tools import (
@@ -10,6 +11,8 @@ from tools import (
     download_pdfs_from_text,
     ping,
 )
+
+console = Console()
 
 
 # Map tool names to their underlying functions for Ollama
@@ -25,9 +28,9 @@ TOOL_MAP: Dict[str, Callable[..., Any]] = {
 def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
     """Invoke a tool by name and return its result."""
     func = TOOL_MAP.get(name)
-    print('Calling function:', name)
-    print('Arguments:', args)
-    print()
+    console.print(f"[cyan]Calling function: {name}[/cyan]")
+    console.print(f"[cyan]Arguments: {args}[/cyan]")
+    console.print()
     if not func:
         return {"status": "error", "message": f"unknown tool {name}", "data": None}
     try:
@@ -44,6 +47,7 @@ def _stream_chat(messages: List[Dict[str, Any]]) -> Iterable[ChatResponse]:
 def run(query: str) -> None:
     """Stream a response, executing tools as needed."""
     messages: List[Dict[str, Any]] = [{"role": "user", "content": query}]
+    in_think = False
 
     while True:
         final: Optional[ChatResponse] = None
@@ -52,10 +56,16 @@ def run(query: str) -> None:
         for chunk in _stream_chat(messages):
             final = chunk
             if chunk.message.content:
-                print(chunk.message.content, end="", flush=True)
+                text = chunk.message.content
+                if "<think>" in text:
+                    in_think = True
+                style = "yellow" if in_think else "green"
+                if "</think>" in text:
+                    in_think = False
+                console.print(text, end="", style=style)
             if chunk.message.tool_calls:
                 tool_calls.extend(chunk.message.tool_calls)
-        print()
+        console.print()
 
         if not final:
             break
