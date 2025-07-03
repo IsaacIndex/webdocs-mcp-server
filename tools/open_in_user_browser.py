@@ -1,12 +1,9 @@
 from typing import Dict, Any
 import logging
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 
 from .mcp import mcp
-from .webscraper import _get_chrome_profile_path
+from .webscraper import _get_chrome_profile_path, create_driver
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +15,7 @@ def open_in_user_browser(url: str) -> Dict[str, Any]:
         profile = _get_chrome_profile_path()
         options = Options()
         options.add_argument(f"--user-data-dir={profile}")
-        driver = webdriver.Chrome(
-            service=Service(ChromeDriverManager().install()), options=options
-        )
+        driver = create_driver(options)
         driver.get(url)
         page_source = driver.page_source
         return {

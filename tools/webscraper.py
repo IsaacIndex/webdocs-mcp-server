@@ -63,6 +63,21 @@ def _get_chrome_binary() -> Optional[str]:
     return None
 
 
+def create_driver(opts: Optional[Options] = None) -> WebDriver:
+    """Initialize and return a Chrome WebDriver."""
+    options = opts or chrome_options
+    binary = _get_chrome_binary()
+    if binary:
+        options.binary_location = binary
+        logger.info(f"Using Chrome binary at {binary}")
+    else:
+        logger.warning("Chrome binary not found; relying on default discovery")
+
+    return webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()), options=options
+    )
+
+
 class WebScraper:
     def __init__(self) -> None:
         self.driver: Optional[WebDriver] = None
@@ -84,18 +99,8 @@ class WebScraper:
             re.compile(r'cookie|privacy|terms|conditions', re.IGNORECASE)
         ]
         try:
-            binary = _get_chrome_binary()
-            if binary:
-                chrome_options.binary_location = binary
-                logger.info(f"Using Chrome binary at {binary}")
-            else:
-                logger.warning("Chrome binary not found; relying on default discovery")
-
             logger.info("Initializing Chrome WebDriver...")
-            self.driver = webdriver.Chrome(
-                service=Service(ChromeDriverManager().install()),
-                options=chrome_options,
-            )
+            self.driver = create_driver()
             logger.info("Chrome WebDriver initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Chrome WebDriver: {str(e)}")
@@ -106,17 +111,7 @@ class WebScraper:
             return
         try:
             logger.info("Attempting to reinitialize Chrome WebDriver...")
-            binary = _get_chrome_binary()
-            if binary:
-                chrome_options.binary_location = binary
-                logger.info(f"Using Chrome binary at {binary}")
-            else:
-                logger.warning("Chrome binary not found; relying on default discovery")
-
-            self.driver = webdriver.Chrome(
-                service=Service(ChromeDriverManager().install()),
-                options=chrome_options,
-            )
+            self.driver = create_driver()
             logger.info("Chrome WebDriver reinitialized successfully")
         except Exception as e:
             error_msg = f"Failed to initialize Chrome WebDriver: {str(e)}"
