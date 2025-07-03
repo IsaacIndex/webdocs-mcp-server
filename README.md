@@ -46,6 +46,9 @@ The server will start on `http://localhost:8000` by default.
 
 ### Agent mode
 
+The old `agents.py` script is deprecated. Use `agents_stream_tools.py` instead.
+Legacy code is kept in `agents_legacy.py` for reference.
+
 Run the interactive agent:
 ```bash
 python agents_stream_tools.py "your question here"

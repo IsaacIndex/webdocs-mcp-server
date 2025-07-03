@@ -73,6 +73,9 @@ python mcp_server.py
 Server starts at `http://localhost:8000`
 
 ### Running in agent mode
+
+The older `agents.py` script has been deprecated. Use `agents_stream_tools.py` instead.
+Legacy code is kept in `agents_legacy.py` for reference.
 ```bash
 python agents_stream_tools.py "your question here"
 ```
