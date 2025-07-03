@@ -6,6 +6,11 @@ This guide is designed to help AI agents navigate and understand the Web Scraper
 
 This is a FastAPI-based web scraping server that implements the Minecraft Control Protocol (MCP). The server provides structured tools for web content extraction and link parsing.
 
+## Major functions
+
+- **MCP mode** (`mcp_server.py`): start the FastAPI server that exposes the MCP endpoints.
+- **Agent mode** (`agents_stream_tools.py`): run an interactive agent that calls the same tools directly.
+
 ## Key Technologies
 
 - FastAPI for the web server
@@ -28,6 +33,7 @@ uv pip install -r requirements.txt
 ```
 .
 ├── mcp_server.py     # Core server implementation and MCP endpoints
+├── agents_stream_tools.py  # Interactive agent script
 ├── mcp.json         # MCP configuration
 ├── requirements.txt  # Python dependencies
 ├── pyproject.toml   # Project metadata
@@ -60,11 +66,16 @@ uv pip install -r requirements.txt
    uv pip freeze > requirements.txt
    ```
 
-### Running the Server
+### Running in MCP mode
 ```bash
 python mcp_server.py
 ```
 Server starts at `http://localhost:8000`
+
+### Running in agent mode
+```bash
+python agents_stream_tools.py "your question here"
+```
 
 ### API Documentation
 - Swagger UI: `http://localhost:8000/docs`
