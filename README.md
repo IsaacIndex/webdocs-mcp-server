@@ -33,7 +33,9 @@ uv pip install -r requirements.txt
 PORT=8000
 ```
 
-## Running the Server
+## Usage modes
+
+### MCP mode
 
 Start the server:
 ```bash
@@ -41,6 +43,13 @@ python mcp_server.py [--log-level info|debug|warning|error|critical]
 ```
 
 The server will start on `http://localhost:8000` by default.
+
+### Agent mode
+
+Run the interactive agent:
+```bash
+python agents_stream_tools.py "your question here"
+```
 
 ## API Endpoints
 
@@ -122,6 +131,7 @@ By default, logs use the `warning` level.
 ## Project Structure
 
 - `mcp_server.py`: Core server implementation and MCP endpoints
+- `agents_stream_tools.py`: Interactive agent for direct tool use
 - `mcp.json`: MCP configuration file
 - `requirements.txt`: Python dependencies
 - `pyproject.toml`: Project metadata and build configuration
