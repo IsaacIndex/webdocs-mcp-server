@@ -31,19 +31,6 @@ user_agent = (
 )
 chrome_options.add_argument(f'--user-agent={user_agent}')
 
-
-def _get_chrome_profile_path() -> str:
-    """Return the default Chrome user profile path based on the OS."""
-    home = os.path.expanduser("~")
-    if sys.platform == "darwin":
-        return os.path.join(home, "Library", "Application Support", "Google", "Chrome")
-    if sys.platform.startswith("linux"):
-        return os.path.join(home, ".config", "google-chrome")
-    if sys.platform.startswith("win"):
-        return os.path.join(home, "AppData", "Local", "Google", "Chrome", "User Data")
-    raise RuntimeError("Unsupported operating system for locating Chrome profile")
-
-
 def _get_chrome_binary() -> Optional[str]:
     """Return the Chrome executable path or None if not found."""
     env_binary = os.getenv("CHROME_BINARY")
