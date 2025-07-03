@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage  # noqa: E402
 from langchain_core.tools import tool  # noqa: E402
 from langgraph.prebuilt import create_react_agent  # noqa: E402
 from ollama import Client  # noqa: E402
+from rich.console import Console  # noqa: E402
 
 from tools import (  # noqa: E402
     open_in_user_browser,
@@ -19,6 +20,7 @@ from tools import (  # noqa: E402
 
 llm = ChatOllama(model="qwen3:4b")
 client = Client()
+console = Console()
 
 TOOLS = [
     tool(open_in_user_browser.fn),
@@ -45,12 +47,18 @@ def stream(query: str) -> None:
         messages=[{"role": "user", "content": query}],
         stream=True,
     )
+    in_think = False
     for chunk in stream:
         message = chunk.get("message", {})
         content = message.get("content")
         if content:
-            print(content, end="", flush=True)
-    print()
+            if "<think>" in content:
+                in_think = True
+            style = "yellow" if in_think else "green"
+            if "</think>" in content:
+                in_think = False
+            console.print(content, end="", style=style)
+    console.print()
 
 
 if __name__ == "__main__":
