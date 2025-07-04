@@ -67,7 +67,7 @@ def create_driver(opts: Optional[Options] = None) -> WebDriver:
 
 
 class WebScraper:
-    def __init__(self, mode: str = "selenium") -> None:
+    def __init__(self, mode: str = "playwright") -> None:
         """Create a web scraper using either Selenium or Playwright."""
         self.mode = mode.lower()
         self.driver: Optional[WebDriver] = None
