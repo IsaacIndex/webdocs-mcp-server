@@ -15,6 +15,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+from playwright.sync_api import sync_playwright
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +67,13 @@ def create_driver(opts: Optional[Options] = None) -> WebDriver:
 
 
 class WebScraper:
-    def __init__(self) -> None:
+    def __init__(self, mode: str = "selenium") -> None:
+        """Create a web scraper using either Selenium or Playwright."""
+        self.mode = mode.lower()
         self.driver: Optional[WebDriver] = None
+        self.playwright = None
+        self.browser = None
+        self.page = None
         self.unwanted_elements = [
             'script', 'style', 'nav', 'footer', 'header', 'aside',
             'iframe', 'noscript', 'svg', 'form', 'button', 'input',
@@ -85,25 +91,50 @@ class WebScraper:
             re.compile(r'^[A-Z\s]+$'),
             re.compile(r'cookie|privacy|terms|conditions', re.IGNORECASE)
         ]
-        try:
-            logger.info("Initializing Chrome WebDriver...")
-            self.driver = create_driver()
-            logger.info("Chrome WebDriver initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize Chrome WebDriver: {str(e)}")
-            self.driver = None
+        if self.mode == "playwright":
+            try:
+                logger.info("Initializing Playwright browser...")
+                self.playwright = sync_playwright().start()
+                self.browser = self.playwright.chromium.launch(headless=True)
+                self.page = self.browser.new_page()
+                logger.info("Playwright browser initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Playwright: {str(e)}")
+                self.page = None
+        else:
+            try:
+                logger.info("Initializing Chrome WebDriver...")
+                self.driver = create_driver()
+                logger.info("Chrome WebDriver initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Chrome WebDriver: {str(e)}")
+                self.driver = None
 
     def _ensure_driver(self) -> None:
-        if self.driver:
-            return
-        try:
-            logger.info("Attempting to reinitialize Chrome WebDriver...")
-            self.driver = create_driver()
-            logger.info("Chrome WebDriver reinitialized successfully")
-        except Exception as e:
-            error_msg = f"Failed to initialize Chrome WebDriver: {str(e)}"
-            logger.error(error_msg)
-            raise Exception(error_msg)
+        if self.mode == "playwright":
+            if self.page:
+                return
+            try:
+                logger.info("Attempting to reinitialize Playwright browser...")
+                self.playwright = sync_playwright().start()
+                self.browser = self.playwright.chromium.launch(headless=True)
+                self.page = self.browser.new_page()
+                logger.info("Playwright browser reinitialized successfully")
+            except Exception as e:
+                error_msg = f"Failed to initialize Playwright: {str(e)}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
+        else:
+            if self.driver:
+                return
+            try:
+                logger.info("Attempting to reinitialize Chrome WebDriver...")
+                self.driver = create_driver()
+                logger.info("Chrome WebDriver reinitialized successfully")
+            except Exception as e:
+                error_msg = f"Failed to initialize Chrome WebDriver: {str(e)}"
+                logger.error(error_msg)
+                raise Exception(error_msg)
 
     def _clean_text(self, text: str) -> str:
         text = re.sub(r'\s+', ' ', text)
@@ -142,17 +173,23 @@ class WebScraper:
 
     def extract_links(self, url: str) -> List[Dict[str, str]]:
         self._ensure_driver()
-        assert self.driver is not None
 
         try:
             logger.info(f"Extracting links from URL: {url}")
-            self.driver.get(url)
-            WebDriverWait(self.driver, 30).until(
-                EC.presence_of_element_located(("tag name", "body"))
-            )
-            time.sleep(2)
-
-            html_content = self.driver.page_source
+            if self.mode == "playwright":
+                assert self.page is not None
+                self.page.goto(url)
+                self.page.wait_for_load_state("load")
+                time.sleep(2)
+                html_content = self.page.content()
+            else:
+                assert self.driver is not None
+                self.driver.get(url)
+                WebDriverWait(self.driver, 30).until(
+                    EC.presence_of_element_located(("tag name", "body"))
+                )
+                time.sleep(2)
+                html_content = self.driver.page_source
             soup = BeautifulSoup(html_content, 'html.parser')
 
             links = []
@@ -188,17 +225,23 @@ class WebScraper:
 
     def fetch_content(self, url: str) -> str:
         self._ensure_driver()
-        assert self.driver is not None
 
         try:
             logger.info(f"Fetching content from URL: {url}")
-            self.driver.get(url)
-            WebDriverWait(self.driver, 30).until(
-                EC.presence_of_element_located(("tag name", "body"))
-            )
-            time.sleep(5)
-
-            html_content = self.driver.page_source
+            if self.mode == "playwright":
+                assert self.page is not None
+                self.page.goto(url)
+                self.page.wait_for_load_state("load")
+                time.sleep(5)
+                html_content = self.page.content()
+            else:
+                assert self.driver is not None
+                self.driver.get(url)
+                WebDriverWait(self.driver, 30).until(
+                    EC.presence_of_element_located(("tag name", "body"))
+                )
+                time.sleep(5)
+                html_content = self.driver.page_source
             soup = BeautifulSoup(html_content, 'html.parser')
 
             text = self._extract_main_content(soup)
@@ -227,12 +270,22 @@ class WebScraper:
             raise Exception(error_msg)
 
     def cleanup(self) -> None:
-        if self.driver:
-            try:
-                self.driver.quit()
-                logger.info("Chrome WebDriver cleaned up successfully")
-            except Exception as e:
-                logger.error(f"Error during WebDriver cleanup: {str(e)}")
+        if self.mode == "playwright":
+            if self.browser:
+                try:
+                    self.browser.close()
+                    logger.info("Playwright browser cleaned up successfully")
+                except Exception as e:
+                    logger.error(f"Error during Playwright cleanup: {str(e)}")
+            if self.playwright:
+                self.playwright.stop()
+        else:
+            if self.driver:
+                try:
+                    self.driver.quit()
+                    logger.info("Chrome WebDriver cleaned up successfully")
+                except Exception as e:
+                    logger.error(f"Error during WebDriver cleanup: {str(e)}")
 
 
 scraper = WebScraper()
