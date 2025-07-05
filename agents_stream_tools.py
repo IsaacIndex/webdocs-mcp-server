@@ -44,9 +44,18 @@ def _stream_chat(messages: List[Dict[str, Any]]) -> Iterable[ChatResponse]:
     return chat(model="qwen3:4b", messages=messages, tools=list(TOOL_MAP.values()), stream=True)
 
 
+DEFAULT_SYSTEM_PROMPT = (
+    "The web scraper defaults to Playwright mode. "
+    "Use Selenium only when a user explicitly requests cookie-based browsing."
+)
+
+
 def run(query: str) -> None:
     """Stream a response, executing tools as needed."""
-    messages: List[Dict[str, Any]] = [{"role": "user", "content": query}]
+    messages: List[Dict[str, Any]] = [
+        {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
+        {"role": "user", "content": query},
+    ]
     in_think = False
 
     while True:
