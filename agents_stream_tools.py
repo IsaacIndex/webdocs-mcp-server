@@ -41,7 +41,7 @@ def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
 
 def _stream_chat(messages: List[Dict[str, Any]]) -> Iterable[ChatResponse]:
     """Yield chat responses from Ollama with streaming enabled."""
-    return chat(model="qwen3:4b", messages=messages, tools=list(TOOL_MAP.values()), stream=True)
+    return chat(model="qwen3:8b", messages=messages, tools=list(TOOL_MAP.values()), stream=True)
 
 
 DEFAULT_SYSTEM_PROMPT = (
