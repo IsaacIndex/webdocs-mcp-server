@@ -3,13 +3,16 @@ import logging
 
 from .mcp import mcp
 from .webscraper import scraper
+from .prompt_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+PROMPT = load_prompt("extract_links")
+
+
+@mcp.tool(description=PROMPT)
 def extract_links(url: str) -> Dict[str, Any]:
-    """Extract all links from a specified URL"""
     try:
         links = scraper.extract_links(url)
         return {
@@ -24,3 +27,6 @@ def extract_links(url: str) -> Dict[str, Any]:
             "message": str(e),
             "data": None,
         }
+
+
+extract_links.__doc__ = PROMPT

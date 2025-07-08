@@ -1,0 +1,7 @@
+Collect all links from a webpage
+
+Args:
+  url (str): The address to scan for links
+
+Returns:
+  dict: Status information and the list of links

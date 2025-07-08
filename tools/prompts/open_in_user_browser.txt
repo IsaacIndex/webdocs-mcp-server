@@ -1,0 +1,7 @@
+Open a URL using the user's normal Chrome profile
+
+Args:
+  url (str): The address to open; https:// is added if missing
+
+Returns:
+  dict: Status information and the page source

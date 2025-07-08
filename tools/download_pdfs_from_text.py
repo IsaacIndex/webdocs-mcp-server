@@ -5,13 +5,16 @@ import re
 import requests
 
 from .mcp import mcp
+from .prompt_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+PROMPT = load_prompt("download_pdfs_from_text")
+
+
+@mcp.tool(description=PROMPT)
 def download_pdfs_from_text(text: str) -> Dict[str, Any]:
-    """Download all PDF links found in the provided text."""
     try:
         pdf_pattern = re.compile(r"https?://[^\s'\"<>]+?\.pdf", re.IGNORECASE)
         links = pdf_pattern.findall(text)
@@ -42,3 +45,6 @@ def download_pdfs_from_text(text: str) -> Dict[str, Any]:
             "message": str(e),
             "data": None,
         }
+
+
+download_pdfs_from_text.__doc__ = PROMPT
