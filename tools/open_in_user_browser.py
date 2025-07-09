@@ -4,13 +4,16 @@ from selenium.webdriver.chrome.options import Options
 
 from .mcp import mcp
 from .webscraper import chrome_options, create_driver
+from .prompt_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+PROMPT = load_prompt("open_in_user_browser")
+
+
+@mcp.tool(description=PROMPT)
 def open_in_user_browser(url: str) -> Dict[str, Any]:
-    """Open a URL in the user's regular Chrome profile. the url MUST start with https://, prepend if not available"""
     try:
         options = Options()
         for arg in chrome_options.arguments:
@@ -27,3 +30,6 @@ def open_in_user_browser(url: str) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Failed to open browser for {url}: {str(e)}")
         return {"status": "error", "message": str(e), "data": None}
+
+
+open_in_user_browser.__doc__ = PROMPT

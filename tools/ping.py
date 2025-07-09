@@ -2,13 +2,19 @@ from typing import Dict, Any
 import time
 
 from .mcp import mcp
+from .prompt_utils import load_prompt
 
 
-@mcp.tool
+PROMPT = load_prompt("ping")
+
+
+@mcp.tool(description=PROMPT)
 def ping() -> Dict[str, Any]:
-    """Check if the server is responsive"""
     return {
         "status": "success",
         "message": "Pong",
         "data": {"timestamp": time.time()},
     }
+
+
+ping.__doc__ = PROMPT

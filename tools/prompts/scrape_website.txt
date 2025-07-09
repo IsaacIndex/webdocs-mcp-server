@@ -1,0 +1,7 @@
+Scrape a webpage to extract plain text content
+
+Args:
+  url (str): The address of the webpage
+
+Returns:
+  dict: Status information and the cleaned text

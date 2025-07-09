@@ -1,0 +1,8 @@
+Use a Playwright reAct agent to accomplish a goal on a website
+
+Args:
+  url (str): Starting page
+  goal (str): Instructions for the agent
+
+Returns:
+  dict: Status information and the final content produced

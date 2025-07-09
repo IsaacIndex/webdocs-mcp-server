@@ -3,13 +3,16 @@ import logging
 
 from .mcp import mcp
 from .webscraper import scraper
+from .prompt_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+PROMPT = load_prompt("scrape_website")
+
+
+@mcp.tool(description=PROMPT)
 def scrape_website(url: str) -> Dict[str, Any]:
-    """Scrape content from a specified URL"""
     try:
         content = scraper.fetch_content(url)
         return {
@@ -24,3 +27,6 @@ def scrape_website(url: str) -> Dict[str, Any]:
             "message": str(e),
             "data": None,
         }
+
+
+scrape_website.__doc__ = PROMPT

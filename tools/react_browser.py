@@ -8,13 +8,16 @@ from langgraph.prebuilt import create_react_agent
 from playwright.sync_api import sync_playwright
 
 from .mcp import mcp
+from .prompt_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool
+PROMPT = load_prompt("react_browser_task")
+
+
+@mcp.tool(description=PROMPT)
 def react_browser_task(url: str, goal: str) -> Dict[str, Any]:
-    """Use a reAct loop with Playwright to accomplish a goal on a website."""
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
         page = browser.new_page()
@@ -50,3 +53,6 @@ def react_browser_task(url: str, goal: str) -> Dict[str, Any]:
             "message": "interaction finished",
             "data": {"content": final},
         }
+
+
+react_browser_task.__doc__ = PROMPT
