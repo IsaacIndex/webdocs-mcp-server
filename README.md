@@ -7,7 +7,7 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 - Web content extraction with intelligent content cleaning
 - Link extraction with full URL resolution
 - Language detection
-- Headless browser automation with Playwright by default or Selenium when cookies are required
+- Headless Chrome browser automation
 - Open URLs in your existing browser session
 - Multi-step website actions with Playwright
 - FastAPI-based REST API
@@ -17,8 +17,8 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 
 - Python 3.11+
 - Chrome browser installed
-- If Chrome is not in your PATH, set the `CHROME_BINARY` environment variable to the full path of the Chrome executable
-- The WebScraper can run in Playwright or Selenium mode. Playwright is the default unless cookie-based sessions are needed.
+- If Chrome is not in your PATH, set the `CHROME_BINARY` environment variable to
+  the full path of the Chrome executable
 - uv package manager
 
 ## Setup
