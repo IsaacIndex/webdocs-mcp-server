@@ -1,4 +1,6 @@
 import json
+import logging
+import os
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from rich.console import Console
@@ -12,7 +14,19 @@ from tools import (
     ping,
 )
 
+
 console = Console()
+
+# configure logging to write to ~/Documents/webdocs-mcp-logs/agent.log
+log_dir = os.path.join(os.path.expanduser("~"), "Documents", "webdocs-mcp-logs")
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, "agent.log")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler(log_file)],
+)
+logger = logging.getLogger(__name__)
 
 
 # Map tool names to their underlying functions for Ollama
@@ -30,12 +44,16 @@ def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
     func = TOOL_MAP.get(name)
     console.print(f"[cyan]Calling function: {name}[/cyan]")
     console.print(f"[cyan]Arguments: {args}[/cyan]")
+    logger.info("Calling function %s with args %s", name, args)
     console.print()
     if not func:
         return {"status": "error", "message": f"unknown tool {name}", "data": None}
     try:
-        return func(**args)
+        result = func(**args)
+        logger.info("Tool %s returned: %s", name, result)
+        return result
     except Exception as exc:  # noqa: BLE001
+        logger.error("Error calling %s: %s", name, exc)
         return {"status": "error", "message": str(exc), "data": None}
 
 
@@ -52,6 +70,7 @@ DEFAULT_SYSTEM_PROMPT = (
 
 def run(query: str) -> None:
     """Stream a response, executing tools as needed."""
+    logger.info("User query: %s", query)
     messages: List[Dict[str, Any]] = [
         {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
         {"role": "user", "content": query},
@@ -87,6 +106,7 @@ def run(query: str) -> None:
             name = call.function.name
             args = call.function.arguments or {}
             result = _invoke_tool(name, args)
+            logger.info("Appending tool result for %s", name)
             messages.append({"role": "tool", "name": name, "content": json.dumps(result)})
 
 
