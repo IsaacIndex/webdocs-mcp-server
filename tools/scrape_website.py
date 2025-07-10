@@ -12,9 +12,9 @@ PROMPT = load_prompt("scrape_website")
 
 
 @mcp.tool(description=PROMPT)
-def scrape_website(url: str) -> Dict[str, Any]:
+async def scrape_website(url: str) -> Dict[str, Any]:
     try:
-        content = scraper.fetch_content(url)
+        content = await scraper.fetch_content(url)
         return {
             "status": "success",
             "no. of characters": len(content),

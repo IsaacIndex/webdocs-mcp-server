@@ -3,6 +3,9 @@ import logging
 import os
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
+import asyncio
+import inspect
+
 from rich.console import Console
 from ollama import chat, ChatResponse
 
@@ -37,7 +40,6 @@ TOOL_MAP: Dict[str, Callable[..., Any]] = {
     "ping": ping.fn,
 }
 
-
 def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
     """Invoke a tool by name and return its result."""
     func = TOOL_MAP.get(name)
@@ -48,6 +50,8 @@ def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
     if not func:
         return {"status": "error", "message": f"unknown tool {name}", "data": None}
     try:
+        if inspect.iscoroutinefunction(func):
+            return asyncio.run(func(**args))
         return func(**args)
     except Exception as exc:  # noqa: BLE001
         logger.exception("error during tool execution: %s", exc)
