@@ -12,7 +12,9 @@ parser.add_argument(
 )
 args, _ = parser.parse_known_args()
 
-log_file = os.path.join(os.path.expanduser("~"), "Downloads", "mcp.log")
+log_dir = os.path.join(os.path.expanduser("~"), "Documents", "webdocs-mcp-logs")
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, "mcp.log")
 log_level = getattr(logging, args.log_level.upper(), logging.WARNING)
 logging.basicConfig(
     level=log_level,
