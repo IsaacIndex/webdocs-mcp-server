@@ -76,12 +76,13 @@ python agents_stream_tools.py "your question here"
 - **Method**: POST
 - **Command**: `extract_links`
 - **Parameters**:
-  ```json
-  {
-    "url": "https://example.com"
-  }
-  ```
-- **Response**: List of all links found on the webpage
+```json
+{
+  "content": "https://example.com"
+}
+```
+The `content` field accepts raw HTML. If a URL is provided, the page will be fetched before parsing.
+- **Response**: List of all links found in the content
 
 #### Download PDFs from Text
 - **URL**: `/mcp`
