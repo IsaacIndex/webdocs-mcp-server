@@ -138,12 +138,14 @@ Once the server is running, you can access the API documentation at:
 
 ## Logging
 
-Logs are written to `~/Downloads/mcp.log` and include:
-- Server startup/shutdown events
-- Web scraping operations
-- Error messages and exceptions
-You can adjust the verbosity with the `--log-level` flag when starting the server.
-By default, logs use the `warning` level.
+Server logs are written to `~/Documents/webdocs-mcp-logs/mcp.log` and include:
+ - Server startup/shutdown events
+ - Web scraping operations
+ - Error messages and exceptions
+The `agents_stream_tools.py` script logs to `~/Documents/webdocs-mcp-logs/agent.log`.
+Both sets of logs are stored in the same directory and the agent output captures tool calls and the `<think>` sections for full traceability.
+You can adjust server verbosity with the `--log-level` flag when starting the server.
+By default, server logs use the `warning` level.
 
 ## Project Structure
 

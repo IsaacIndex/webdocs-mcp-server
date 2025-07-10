@@ -1,4 +1,6 @@
 import json
+import logging
+import os
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 from rich.console import Console
@@ -13,6 +15,17 @@ from tools import (
 )
 
 console = Console()
+
+log_dir = os.path.join(os.path.expanduser("~"), "Documents", "webdocs-mcp-logs")
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, "agent.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler(), logging.FileHandler(log_file)],
+)
+logger = logging.getLogger(__name__)
 
 
 # Map tool names to their underlying functions for Ollama
@@ -31,11 +44,13 @@ def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
     console.print(f"[cyan]Calling function: {name}[/cyan]")
     console.print(f"[cyan]Arguments: {args}[/cyan]")
     console.print()
+    logger.info("calling function %s with args %s", name, args)
     if not func:
         return {"status": "error", "message": f"unknown tool {name}", "data": None}
     try:
         return func(**args)
     except Exception as exc:  # noqa: BLE001
+        logger.exception("error during tool execution: %s", exc)
         return {"status": "error", "message": str(exc), "data": None}
 
 
@@ -52,6 +67,7 @@ DEFAULT_SYSTEM_PROMPT = (
 
 def run(query: str) -> None:
     """Stream a response, executing tools as needed."""
+    logger.info("received query: %s", query)
     messages: List[Dict[str, Any]] = [
         {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
         {"role": "user", "content": query},
@@ -61,11 +77,13 @@ def run(query: str) -> None:
     while True:
         final: Optional[ChatResponse] = None
         tool_calls = []
+        output_buffer = ""
 
         for chunk in _stream_chat(messages):
             final = chunk
             if chunk.message.content:
                 text = chunk.message.content
+                output_buffer += text
                 if "<think>" in text:
                     in_think = True
                 style = "yellow" if in_think else "green"
@@ -75,6 +93,8 @@ def run(query: str) -> None:
             if chunk.message.tool_calls:
                 tool_calls.extend(chunk.message.tool_calls)
         console.print()
+        if output_buffer:
+            logger.info("agent output: %s", output_buffer)
 
         if not final:
             break
@@ -95,7 +115,9 @@ if __name__ == "__main__":
     from tools.webscraper import scraper
 
     query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else input("Query: ")
+    logger.info("starting agent")
     try:
         run(query)
     finally:
         scraper.cleanup()
+        logger.info("agent shutdown")
