@@ -65,11 +65,11 @@
           }
         },
         "extract_links": {
-          "description": "Extract all links from a specified URL",
+          "description": "Extract all links from raw HTML content or from a URL after fetching it",
           "parameters": {
-            "url": {
+            "content": {
               "type": "string",
-              "description": "The URL to extract links from",
+              "description": "Raw web page content or a URL",
               "required": true
             }
           }

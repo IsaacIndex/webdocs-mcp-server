@@ -1,7 +1,7 @@
-Collect all links from a webpage
+Collect all links from raw web content. If the input is a URL, the page will be fetched first.
 
 Args:
-  url (str): The address to scan for links
+  content (str): Raw HTML content or a URL
 
 Returns:
   dict: Status information and the list of links

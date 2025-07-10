@@ -45,7 +45,7 @@ uv pip install -r requirements.txt
 ### 1. MCP Endpoints (`mcp_server.py`)
 - `/mcp` endpoint handling:
   - `scrape_website`: Extracts and cleans web content
-  - `extract_links`: Retrieves all links from a webpage
+  - `extract_links`: Collects links from raw HTML. If given a URL, it fetches the page first.
   - `ping`: Server status check
 
 ### 2. Configuration
