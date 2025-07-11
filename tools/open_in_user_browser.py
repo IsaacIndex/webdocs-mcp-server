@@ -33,3 +33,17 @@ def open_in_user_browser(url: str) -> Dict[str, Any]:
 
 
 open_in_user_browser.__doc__ = PROMPT
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(
+        description="open a url in the user browser and return page source"
+    )
+    parser.add_argument("url", help="the page to open")
+    args = parser.parse_args()
+
+    result = open_in_user_browser(args.url)
+    print(json.dumps(result, indent=2))

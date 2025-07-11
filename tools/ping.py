@@ -18,3 +18,9 @@ def ping() -> Dict[str, Any]:
 
 
 ping.__doc__ = PROMPT
+
+
+if __name__ == "__main__":
+    import json
+
+    print(json.dumps(ping(), indent=2))

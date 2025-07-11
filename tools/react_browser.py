@@ -56,3 +56,18 @@ def react_browser_task(url: str, goal: str) -> Dict[str, Any]:
 
 
 react_browser_task.__doc__ = PROMPT
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(
+        description="use an llm to interact with a page via playwright"
+    )
+    parser.add_argument("url", help="starting page url")
+    parser.add_argument("goal", help="task description")
+    args = parser.parse_args()
+
+    result = react_browser_task(args.url, args.goal)
+    print(json.dumps(result, indent=2))
