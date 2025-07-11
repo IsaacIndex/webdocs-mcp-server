@@ -6,7 +6,7 @@ from typing import Optional, List, Dict
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup, Tag
-from langdetect import detect, LangDetectException
+from langdetect import detect, LangDetectException  # noqa: F401
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -226,7 +226,7 @@ class WebScraper:
             if self.mode == "playwright":
                 assert self.page is not None
                 await self.page.goto(url, wait_until="networkidle")
-                html_content = await self.page.content()
+                text = await self.page.locator("body").inner_text()
             else:
                 assert self.driver is not None
                 await asyncio.get_running_loop().run_in_executor(None, self.driver.get, url)
@@ -234,28 +234,24 @@ class WebScraper:
                     EC.presence_of_element_located(("tag name", "body"))
                 )
                 await asyncio.sleep(5)
-                html_content = self.driver.page_source
-            soup = BeautifulSoup(html_content, 'html.parser')
-
-            text = self._extract_main_content(soup)
-
-            lines = text.split('\n')
-            cleaned_lines = []
-            for line in lines:
-                cleaned_line = self._clean_text(line)
-                if self._is_relevant_content(cleaned_line):
-                    cleaned_lines.append(cleaned_line)
-
-            text = '\n'.join(cleaned_lines)
-            text = re.sub(r'\n\s*\n', '\n\n', text)
-
-            try:
-                if detect(text) != 'en':
-                    logger.warning(f"Non-English content detected from {url}")
-            except LangDetectException:
-                logger.warning(f"Could not detect language for content from {url}")
-
-            logger.info(f"Successfully extracted and cleaned text content from {url}")
+                text = self.driver.find_element("tag name", "body").text
+            # html_content = await self.page.content()  # noqa: ERA001
+            # soup = BeautifulSoup(html_content, 'html.parser')  # noqa: ERA001
+            # text = self._extract_main_content(soup)  # noqa: ERA001
+            # lines = text.split('\n')  # noqa: ERA001
+            # cleaned_lines = []  # noqa: ERA001
+            # for line in lines:  # noqa: ERA001
+            #     cleaned_line = self._clean_text(line)  # noqa: ERA001
+            #     if self._is_relevant_content(cleaned_line):  # noqa: ERA001
+            #         cleaned_lines.append(cleaned_line)  # noqa: ERA001
+            # text = '\n'.join(cleaned_lines)  # noqa: ERA001
+            # text = re.sub(r'\n\s*\n', '\n\n', text)  # noqa: ERA001
+            # try:  # noqa: ERA001
+            #     if detect(text) != 'en':  # noqa: ERA001
+            #         logger.warning(f"Non-English content detected from {url}")  # noqa: ERA001
+            # except LangDetectException:  # noqa: ERA001
+            #     logger.warning(f"Could not detect language for content from {url}")  # noqa: ERA001
+            logger.info(f"Successfully retrieved text content from {url}")
             return text
         except Exception as e:
             error_msg = f"Error fetching content from {url}: {str(e)}"
@@ -288,7 +284,6 @@ scraper = WebScraper()
 
 if __name__ == "__main__":
     import argparse
-    import asyncio
     import json
 
     parser = argparse.ArgumentParser(description="basic cli for the WebScraper")

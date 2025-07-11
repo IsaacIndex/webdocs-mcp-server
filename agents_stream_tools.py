@@ -40,6 +40,7 @@ TOOL_MAP: Dict[str, Callable[..., Any]] = {
     "ping": ping.fn,
 }
 
+
 def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
     """Invoke a tool by name and return its result."""
     func = TOOL_MAP.get(name)
