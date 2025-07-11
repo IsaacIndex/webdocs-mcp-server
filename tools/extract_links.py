@@ -5,8 +5,8 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
-from .mcp import mcp
-from .prompt_utils import load_prompt
+from tools.mcp import mcp
+from tools.prompt_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 

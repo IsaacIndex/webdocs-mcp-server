@@ -2,9 +2,9 @@ from typing import Dict, Any
 import logging
 from selenium.webdriver.chrome.options import Options
 
-from .mcp import mcp
-from .webscraper import chrome_options, create_driver
-from .prompt_utils import load_prompt
+from tools.mcp import mcp
+from tools.webscraper import chrome_options, create_driver
+from tools.prompt_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 

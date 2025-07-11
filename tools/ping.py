@@ -1,8 +1,8 @@
 from typing import Dict, Any
 import time
 
-from .mcp import mcp
-from .prompt_utils import load_prompt
+from tools.mcp import mcp
+from tools.prompt_utils import load_prompt
 
 
 PROMPT = load_prompt("ping")

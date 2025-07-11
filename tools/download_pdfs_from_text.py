@@ -4,8 +4,8 @@ import os
 import re
 import requests
 
-from .mcp import mcp
-from .prompt_utils import load_prompt
+from tools.mcp import mcp
+from tools.prompt_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 

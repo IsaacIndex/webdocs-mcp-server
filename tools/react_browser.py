@@ -7,8 +7,8 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from playwright.sync_api import sync_playwright
 
-from .mcp import mcp
-from .prompt_utils import load_prompt
+from tools.mcp import mcp
+from tools.prompt_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
