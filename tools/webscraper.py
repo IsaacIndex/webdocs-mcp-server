@@ -115,7 +115,7 @@ class WebScraper:
             self.browser = await self.playwright.chromium.launch(headless=True)
 
         if not self.page:
-            self.page = await self.browser.new_page()
+            self.page = await self.browser.new_page(user_agent=user_agent)
 
     async def _ensure_driver(self) -> None:
         # NOTE: this method is now awaited by callers
@@ -175,9 +175,7 @@ class WebScraper:
             logger.info(f"Extracting links from URL: {url}")
             if self.mode == "playwright":
                 assert self.page is not None
-                await self.page.goto(url)
-                await self.page.wait_for_load_state("load")
-                await asyncio.sleep(2)
+                await self.page.goto(url, wait_until="domcontentloaded")
                 html_content = await self.page.content()
             else:
                 assert self.driver is not None
@@ -227,9 +225,7 @@ class WebScraper:
             logger.info(f"Fetching content from URL: {url}")
             if self.mode == "playwright":
                 assert self.page is not None
-                await self.page.goto(url)
-                await self.page.wait_for_load_state("load")
-                await asyncio.sleep(5)
+                await self.page.goto(url, wait_until="networkidle")
                 html_content = await self.page.content()
             else:
                 assert self.driver is not None
