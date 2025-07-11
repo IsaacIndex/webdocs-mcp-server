@@ -56,3 +56,17 @@ def extract_links(content: str) -> Dict[str, Any]:
 
 
 extract_links.__doc__ = PROMPT
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+
+    parser = argparse.ArgumentParser(
+        description="extract links from a url or html snippet"
+    )
+    parser.add_argument("content", help="url or html content")
+    args = parser.parse_args()
+
+    result = extract_links(args.content)
+    print(json.dumps(result, indent=2))

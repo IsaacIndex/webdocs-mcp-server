@@ -288,3 +288,34 @@ class WebScraper:
 # The scraper instance can be created synchronously; its heavy resources
 # are loaded lazily when the first async method is awaited.
 scraper = WebScraper()
+
+
+if __name__ == "__main__":
+    import argparse
+    import asyncio
+    import json
+
+    parser = argparse.ArgumentParser(description="basic cli for the WebScraper")
+    parser.add_argument("url", help="page to fetch")
+    parser.add_argument(
+        "--mode",
+        choices=["playwright", "selenium"],
+        default="playwright",
+        help="scraper mode",
+    )
+    parser.add_argument(
+        "--links",
+        action="store_true",
+        help="extract links instead of text content",
+    )
+    args = parser.parse_args()
+
+    scraper = WebScraper(mode=args.mode)
+    try:
+        if args.links:
+            data = asyncio.run(scraper.extract_links(args.url))
+        else:
+            data = asyncio.run(scraper.fetch_content(args.url))
+        print(json.dumps(data, indent=2))
+    finally:
+        asyncio.run(scraper.cleanup())

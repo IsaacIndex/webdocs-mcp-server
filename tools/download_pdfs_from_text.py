@@ -48,3 +48,24 @@ def download_pdfs_from_text(text: str) -> Dict[str, Any]:
 
 
 download_pdfs_from_text.__doc__ = PROMPT
+
+
+if __name__ == "__main__":
+    import argparse
+    import json
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(
+        description="download pdf files referenced in text"
+    )
+    parser.add_argument("input", help="text or path to a file containing text")
+    parser.add_argument(
+        "--file",
+        action="store_true",
+        help="treat input argument as a file path",
+    )
+    args = parser.parse_args()
+
+    text = Path(args.input).read_text() if args.file else args.input
+    result = download_pdfs_from_text(text)
+    print(json.dumps(result, indent=2))
