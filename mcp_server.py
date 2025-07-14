@@ -12,7 +12,8 @@ parser.add_argument(
 )
 args, _ = parser.parse_known_args()
 
-log_dir = os.path.join(os.path.expanduser("~"), "Documents", "webdocs-mcp-logs")
+project_dir = os.path.dirname(os.path.abspath(__file__))
+log_dir = os.path.join(project_dir, "logs")
 os.makedirs(log_dir, exist_ok=True)
 log_file = os.path.join(log_dir, "mcp.log")
 log_level = getattr(logging, args.log_level.upper(), logging.WARNING)
