@@ -14,7 +14,7 @@ from tools import (  # noqa: E402
     open_in_user_browser,
     scrape_website,
     extract_links,
-    download_pdfs_from_text,
+    download_pdfs,
     ping,
 )
 
@@ -26,7 +26,7 @@ TOOLS = [
     tool(open_in_user_browser.fn),
     tool(scrape_website.fn),
     tool(extract_links.fn),
-    tool(download_pdfs_from_text.fn),
+    tool(download_pdfs.fn),
     tool(ping.fn),
 ]
 

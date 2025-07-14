@@ -1,0 +1,7 @@
+Download PDF files from a list of links
+
+Args:
+  links (List[str]): URLs pointing to PDF files
+
+Returns:
+  dict: Status information and the list of downloaded files

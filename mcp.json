@@ -74,12 +74,13 @@
             }
           }
         },
-        "download_pdfs_from_text": {
-          "description": "Download all PDF links found in a block of text",
+        "download_pdfs": {
+          "description": "Download PDF files from a list of links",
           "parameters": {
-            "text": {
-              "type": "string",
-              "description": "Text that may contain PDF links",
+            "links": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "List of URLs pointing to PDF files",
               "required": true
             }
           }
