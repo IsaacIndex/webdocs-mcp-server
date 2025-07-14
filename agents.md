@@ -52,8 +52,8 @@ uv pip install -r requirements.txt
 - Environment variables in `.env`:
   - `PORT`: Server port (default: 8000)
 - Logging configuration:
-  - Logs are written to `~/Documents/webdocs-mcp-logs/mcp.log`
-  - `agents_stream_tools.py` logs to `~/Documents/webdocs-mcp-logs/agent.log`
+  - Logs are written to `project_folder/logs/mcp.log`
+  - `agents_stream_tools.py` logs to `project_folder/logs/agent.log`
 
 ## Common Tasks
 
