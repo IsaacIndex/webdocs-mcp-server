@@ -1,7 +1,0 @@
-Download PDF files referenced inside text
-
-Args:
-  text (str): Text that may include links to PDFs
-
-Returns:
-  dict: Status information and the list of downloaded files

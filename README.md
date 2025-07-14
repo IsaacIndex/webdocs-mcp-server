@@ -84,14 +84,14 @@ python agents_stream_tools.py "your question here"
 The `content` field accepts raw HTML. If a URL is provided, the page will be fetched before parsing.
 - **Response**: List of all links found in the content
 
-#### Download PDFs from Text
+#### Download PDFs
 - **URL**: `/mcp`
 - **Method**: POST
-- **Command**: `download_pdfs_from_text`
+- **Command**: `download_pdfs`
 - **Parameters**:
   ```json
   {
-    "text": "Check out https://example.com/sample.pdf"
+    "links": ["https://example.com/sample.pdf"]
   }
   ```
 - **Response**: Paths to the downloaded PDF files

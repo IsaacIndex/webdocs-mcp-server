@@ -4,10 +4,10 @@ Scrapes a single page: prints title, grabs some text,
 and saves the final HTML to disk.
 """
 import asyncio
-from pathlib import Path
 from playwright.async_api import async_playwright
 
 TARGET_URL = "https://www.cnbc.com/world/?region=worldm"   # <-- change me!
+
 
 async def scrape(url: str):
     async with async_playwright() as p:

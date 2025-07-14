@@ -1,7 +1,6 @@
 from typing import Dict, Any, List
 import logging
 import os
-import re
 import requests
 
 from .mcp import mcp
@@ -9,15 +8,13 @@ from .prompt_utils import load_prompt
 
 logger = logging.getLogger(__name__)
 
-
-PROMPT = load_prompt("download_pdfs_from_text")
+PROMPT = load_prompt("download_pdfs")
 
 
 @mcp.tool(description=PROMPT)
-def download_pdfs_from_text(text: str) -> Dict[str, Any]:
+def download_pdfs(links: List[str]) -> Dict[str, Any]:
+    """Download PDF files from a list of links."""
     try:
-        pdf_pattern = re.compile(r"https?://[^\s'\"<>]+?\.pdf", re.IGNORECASE)
-        links = pdf_pattern.findall(text)
         download_dir = os.path.join(os.path.expanduser("~"), "Downloads")
         os.makedirs(download_dir, exist_ok=True)
         downloaded_files: List[str] = []
@@ -26,7 +23,7 @@ def download_pdfs_from_text(text: str) -> Dict[str, Any]:
             clean_link = link.rstrip(').,')
             file_name = os.path.basename(clean_link.split("?")[0])
             file_path = os.path.join(download_dir, file_name)
-            logger.info(f"Downloading PDF from {clean_link} to {file_path}")
+            logger.info("Downloading PDF from %s to %s", clean_link, file_path)
             response = requests.get(clean_link, timeout=30)
             response.raise_for_status()
             with open(file_path, "wb") as pdf_file:
@@ -36,10 +33,10 @@ def download_pdfs_from_text(text: str) -> Dict[str, Any]:
         return {
             "status": "success",
             "no. of files": len(downloaded_files),
-            "message": "PDF files downloaded" if downloaded_files else "No PDF links found",
+            "message": "PDF files downloaded" if downloaded_files else "No files downloaded",
             "data": {"files": downloaded_files},
         }
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return {
             "status": "error",
             "message": str(e),
@@ -47,7 +44,7 @@ def download_pdfs_from_text(text: str) -> Dict[str, Any]:
         }
 
 
-download_pdfs_from_text.__doc__ = PROMPT
+download_pdfs.__doc__ = PROMPT
 
 
 if __name__ == "__main__":
@@ -55,17 +52,16 @@ if __name__ == "__main__":
     import json
     from pathlib import Path
 
-    parser = argparse.ArgumentParser(
-        description="download pdf files referenced in text"
-    )
-    parser.add_argument("input", help="text or path to a file containing text")
-    parser.add_argument(
-        "--file",
-        action="store_true",
-        help="treat input argument as a file path",
-    )
+    parser = argparse.ArgumentParser(description="download pdf files from provided links")
+    parser.add_argument("links", nargs="*", help="list of pdf URLs")
+    parser.add_argument("--file", action="store_true", help="treat positional arguments as a file containing links")
     args = parser.parse_args()
 
-    text = Path(args.input).read_text() if args.file else args.input
-    result = download_pdfs_from_text(text)
+    if args.file:
+        text = Path(args.links[0]).read_text()
+        links = [line.strip() for line in text.splitlines() if line.strip()]
+    else:
+        links = args.links
+
+    result = download_pdfs(links)
     print(json.dumps(result, indent=2))

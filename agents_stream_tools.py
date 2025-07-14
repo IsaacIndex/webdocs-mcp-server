@@ -13,7 +13,7 @@ from tools import (
     open_in_user_browser,
     scrape_website,
     extract_links,
-    download_pdfs_from_text,
+    download_pdfs,
     ping,
 )
 
@@ -37,7 +37,7 @@ TOOL_MAP: Dict[str, Callable[..., Any]] = {
     "open_in_user_browser": open_in_user_browser,
     "scrape_website": scrape_website,
     "extract_links": extract_links,
-    "download_pdfs_from_text": download_pdfs_from_text,
+    "download_pdfs": download_pdfs,
     "ping": ping,
 }
 
