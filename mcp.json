@@ -54,12 +54,17 @@
         "file": "mcp.log"
       },
       "commands": {
-        "fetch_website": {
-          "description": "Fetch content from a specified URL using Selenium",
+        "scrape_website": {
+          "description": "Fetch and filter web content relevant to a query",
           "parameters": {
             "url": {
               "type": "string",
               "description": "The URL to fetch content from",
+              "required": true
+            },
+            "query": {
+              "type": "string",
+              "description": "Information to look for on the page",
               "required": true
             }
           }

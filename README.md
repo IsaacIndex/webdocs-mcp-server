@@ -66,10 +66,11 @@ python agents_stream_tools.py "your question here"
 - **Parameters**:
   ```json
   {
-    "url": "https://example.com"
+    "url": "https://example.com",
+    "query": "specific topic"
   }
   ```
-- **Response**: Extracted and cleaned content from the webpage
+- **Response**: Filtered content relevant to the query
 
 #### Extract Links
 - **URL**: `/mcp`

@@ -1,7 +1,8 @@
-Scrape a webpage to extract plain text content
+Scrape a webpage and return only text relevant to a query
 
 Args:
   url (str): The address of the webpage
+  query (str): What information to search for on the page
 
 Returns:
-  dict: Status information and the cleaned text
+  dict: Status information and the filtered text
