@@ -78,11 +78,11 @@ python agents_stream_tools.py "your question here"
 - **Parameters**:
 ```json
 {
-  "content": "https://example.com"
+  "url": "https://example.com"
 }
 ```
-The `content` field accepts raw HTML. If a URL is provided, the page will be fetched before parsing.
-- **Response**: List of all links found in the content
+The server fetches the URL and returns all links found on the page.
+- **Response**: List of all links found on the page
 
 #### Download PDFs
 - **URL**: `/mcp`
