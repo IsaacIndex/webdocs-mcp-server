@@ -65,7 +65,7 @@
           }
         },
         "extract_links": {
-          "description": "Fetch a URL and return all links found on the page",
+          "description": "Fetch a URL and return all links from the page. Relative links are expanded to absolute URLs",
           "parameters": {
             "url": {
               "type": "string",

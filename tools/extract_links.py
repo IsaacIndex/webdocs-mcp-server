@@ -1,6 +1,6 @@
 from typing import Dict, Any
 import logging
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 
@@ -28,10 +28,10 @@ def extract_links(url: str) -> Dict[str, Any]:
             href = a_tag.get("href", "")
             text = a_tag.get_text(strip=True)
 
-            if not href or href.startswith("javascript:"):
+            if not href or href.lower().startswith("javascript:"):
                 continue
 
-            if not href.startswith(("http://", "https://")):
+            if not urlparse(href).scheme:
                 href = urljoin(base_url, href)
 
             links.append({"url": href, "text": text if text else href})

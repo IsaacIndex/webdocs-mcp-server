@@ -1,4 +1,5 @@
-Fetch the given URL and collect all links from the page.
+Fetch the given URL and collect all links from the page. Relative paths are
+expanded to absolute links using the page's base URL.
 
 Args:
   url (str): Target URL

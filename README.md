@@ -82,6 +82,7 @@ python agents_stream_tools.py "your question here"
 }
 ```
 The server fetches the URL and returns all links found on the page.
+- Relative paths are converted to absolute URLs based on the provided page.
 - **Response**: List of all links found on the page
 
 #### Download PDFs
