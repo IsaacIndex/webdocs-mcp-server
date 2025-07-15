@@ -70,11 +70,11 @@
           }
         },
         "extract_links": {
-          "description": "Extract all links from raw HTML content or from a URL after fetching it",
+          "description": "Fetch a URL and return all links from the page. Relative links are expanded to absolute URLs",
           "parameters": {
-            "content": {
+            "url": {
               "type": "string",
-              "description": "Raw web page content or a URL",
+              "description": "The URL to fetch",
               "required": true
             }
           }

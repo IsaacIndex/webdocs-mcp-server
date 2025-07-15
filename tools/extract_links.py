@@ -1,7 +1,6 @@
 from typing import Dict, Any
 import logging
-import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 import requests
 from bs4 import BeautifulSoup
 
@@ -15,16 +14,12 @@ PROMPT = load_prompt("extract_links")
 
 
 @mcp.tool(description=PROMPT)
-def extract_links(content: str) -> Dict[str, Any]:
+def extract_links(url: str) -> Dict[str, Any]:
     try:
-        if re.match(r"https?://", content.strip()):
-            response = requests.get(content, timeout=30)
-            response.raise_for_status()
-            html = response.text
-            base_url = content
-        else:
-            html = content
-            base_url = ""
+        response = requests.get(url, timeout=30)
+        response.raise_for_status()
+        html = response.text
+        base_url = url
 
         soup = BeautifulSoup(html, "html.parser")
 
@@ -33,10 +28,10 @@ def extract_links(content: str) -> Dict[str, Any]:
             href = a_tag.get("href", "")
             text = a_tag.get_text(strip=True)
 
-            if not href or href.startswith("javascript:"):
+            if not href or href.lower().startswith("javascript:"):
                 continue
 
-            if not href.startswith(("http://", "https://")):
+            if not urlparse(href).scheme:
                 href = urljoin(base_url, href)
 
             links.append({"url": href, "text": text if text else href})
@@ -62,11 +57,9 @@ if __name__ == "__main__":
     import argparse
     import json
 
-    parser = argparse.ArgumentParser(
-        description="extract links from a url or html snippet"
-    )
-    parser.add_argument("content", help="url or html content")
+    parser = argparse.ArgumentParser(description="extract links from a url")
+    parser.add_argument("url", help="url to fetch")
     args = parser.parse_args()
 
-    result = extract_links(args.content)
+    result = extract_links(args.url)
     print(json.dumps(result, indent=2))
