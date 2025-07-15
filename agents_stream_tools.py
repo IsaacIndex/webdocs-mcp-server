@@ -104,7 +104,11 @@ def run(query: str) -> None:
 
         if not final:
             break
-        messages.append(final.message.model_dump())
+
+        assistant_message = {"role": "assistant", "content": output_buffer}
+        if tool_calls:
+            assistant_message["tool_calls"] = [c.model_dump() for c in tool_calls]
+        messages.append(assistant_message)
 
         if not tool_calls:
             break
