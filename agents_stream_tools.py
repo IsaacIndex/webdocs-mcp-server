@@ -19,6 +19,9 @@ from tools import (
 
 console = Console()
 
+TRUNCATE_AT = 2000
+FULL_OUTPUT_PLACEHOLDER = "<FULL_TOOL_OUTPUT>"
+
 project_dir = os.path.dirname(os.path.abspath(__file__))
 log_dir = os.path.join(project_dir, "logs")
 os.makedirs(log_dir, exist_ok=True)
@@ -67,7 +70,10 @@ def _stream_chat(messages: List[Dict[str, Any]]) -> Iterable[ChatResponse]:
 
 DEFAULT_SYSTEM_PROMPT = (
     "The web scraper defaults to Playwright mode. "
-    "Use Selenium only when a user explicitly requests cookie-based browsing."
+    "Use Selenium only when a user explicitly requests cookie-based browsing. "
+    "Tool outputs may be truncated and might not be valid JSON. "
+    "The full text is stored in memory. Use "
+    f"{FULL_OUTPUT_PLACEHOLDER} to reference the previous full output when calling new tools."
     "DO NOT overthink, keep the reasoning straightforward"
 )
 
@@ -80,6 +86,7 @@ def run(query: str) -> None:
         {"role": "user", "content": query},
     ]
     in_think = False
+    last_tool_output: Optional[str] = None
 
     while True:
         final: Optional[ChatResponse] = None
@@ -118,8 +125,22 @@ def run(query: str) -> None:
         for call in tool_calls:
             name = call.function.name
             args = call.function.arguments or {}
+            # replace placeholder with the stored full tool output
+            for key, value in list(args.items()):
+                if isinstance(value, str) and FULL_OUTPUT_PLACEHOLDER in value:
+                    args[key] = value.replace(FULL_OUTPUT_PLACEHOLDER, last_tool_output or "")
+
             result = _invoke_tool(name, args)
-            messages.append({"role": "tool", "name": name, "content": json.dumps(result)})
+            full_output = json.dumps(result)
+            last_tool_output = full_output
+            truncated = full_output
+            if len(full_output) > TRUNCATE_AT:
+                omitted = len(full_output) - TRUNCATE_AT
+                truncated = (
+                    full_output[:TRUNCATE_AT]
+                    + f"...\n[output truncated, {omitted} chars omitted; use {FULL_OUTPUT_PLACEHOLDER} for full output]"
+                )
+            messages.append({"role": "tool", "name": name, "content": truncated})
 
 
 if __name__ == "__main__":
