@@ -65,12 +65,13 @@ def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
 
 def _stream_chat(messages: List[Dict[str, Any]]) -> Iterable[ChatResponse]:
     """Yield chat responses from Ollama with streaming enabled."""
-    return chat(model="qwen3:8b", messages=messages, tools=list(TOOL_MAP.values()), stream=True)
+    return chat(model="llama3.1:8b", messages=messages, tools=list(TOOL_MAP.values()), stream=True)
 
 
 DEFAULT_SYSTEM_PROMPT = (
     "The web scraper defaults to Playwright mode. "
     "Use Selenium only when a user explicitly requests cookie-based browsing. "
+    "DO NOT overthink, keep the reasoning straightforward"
     "Tool outputs may be truncated. Use "
     f"{FULL_OUTPUT_PLACEHOLDER} to reference the previous full output when calling new tools."
 )
@@ -90,7 +91,8 @@ def run(query: str) -> None:
         final: Optional[ChatResponse] = None
         tool_calls = []
         output_buffer = ""
-
+        print("messages size:", len(str(messages)))
+        print(messages)
         for chunk in _stream_chat(messages):
             final = chunk
             if chunk.message.content:
