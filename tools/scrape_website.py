@@ -17,7 +17,7 @@ _stemmer = PorterStemmer()
 
 def _tokenize(text: str) -> set[str]:
     tokens = word_tokenize(text)
-    return { _stemmer.stem(t.lower()) for t in tokens if t.isalpha() }
+    return {_stemmer.stem(t.lower()) for t in tokens if t.isalpha()}
 
 
 def _filter_content(content: str, query: str, max_sentences: int = 5) -> str:
