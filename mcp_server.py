@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import asyncio
 
 from tools import mcp, scraper
 
@@ -28,4 +29,4 @@ if __name__ == "__main__":
     try:
         mcp.run()
     finally:
-        scraper.cleanup()
+        asyncio.run(scraper.cleanup())
