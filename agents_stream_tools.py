@@ -152,5 +152,5 @@ if __name__ == "__main__":
     try:
         run(query)
     finally:
-        scraper.cleanup()
+        asyncio.run(scraper.cleanup())
         logger.info("agent shutdown")
