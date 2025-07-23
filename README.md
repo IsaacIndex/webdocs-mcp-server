@@ -47,12 +47,15 @@ The server will start on `http://localhost:8000` by default.
 
 ### Agent mode
 
-The old `agents.py` script is deprecated. Use `agents_stream_tools.py` instead.
 Legacy code is kept in `agents_legacy.py` for reference.
-
-Run the interactive agent:
+The old `agents.py` script is deprecated. Use `agents_stream_tools.py` for models that support the tools API. For other models, run `agents_stream_prompt.py`.
+Run the interactive agent with tool support:
 ```bash
 python agents_stream_tools.py "your question here"
+```
+For models without tool support:
+```bash
+python agents_stream_prompt.py "your question here"
 ```
 
 ## API Endpoints
@@ -145,7 +148,7 @@ Server logs are written to `project_folder/logs/mcp.log` and include:
  - Server startup/shutdown events
  - Web scraping operations
  - Error messages and exceptions
-The `agents_stream_tools.py` script logs to `project_folder/logs/agent.log`.
+The `agents_stream_tools.py` and `agents_stream_prompt.py` script logs to `project_folder/logs/agent.log`.
 Both sets of logs are stored in the same directory and the agent output captures tool calls and the `<think>` sections for full traceability.
 You can adjust server verbosity with the `--log-level` flag when starting the server.
 By default, server logs use the `warning` level.
@@ -154,6 +157,7 @@ By default, server logs use the `warning` level.
 
 - `mcp_server.py`: Core server implementation and MCP endpoints
 - `agents_stream_tools.py`: Interactive agent for direct tool use
+- `agents_stream_prompt.py`: Agent for models without Ollama tools support
 - `mcp.json`: MCP configuration file
 - `requirements.txt`: Python dependencies
 - `pyproject.toml`: Project metadata and build configuration
