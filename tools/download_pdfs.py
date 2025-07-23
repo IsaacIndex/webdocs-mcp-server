@@ -1,6 +1,7 @@
 from typing import Dict, Any, List
 import logging
 import os
+from urllib.parse import urlparse
 import requests
 
 from .mcp import mcp
@@ -19,9 +20,14 @@ def download_pdfs(links: List[str]) -> Dict[str, Any]:
         os.makedirs(download_dir, exist_ok=True)
         downloaded_files: List[str] = []
 
-        for link in links:
+        for idx, link in enumerate(links):
             clean_link = link.rstrip(').,')
-            file_name = os.path.basename(clean_link.split("?")[0])
+            parsed = urlparse(clean_link)
+            file_name = os.path.basename(parsed.path.rstrip("/"))
+            if not file_name:
+                file_name = f"download_{idx}.pdf"
+            elif not file_name.lower().endswith(".pdf"):
+                file_name += ".pdf"
             file_path = os.path.join(download_dir, file_name)
             logger.info("Downloading PDF from %s to %s", clean_link, file_path)
             response = requests.get(clean_link, timeout=30)
