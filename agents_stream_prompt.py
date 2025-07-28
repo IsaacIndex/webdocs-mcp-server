@@ -10,6 +10,8 @@ import inspect
 from rich.console import Console
 from ollama import chat, ChatResponse
 
+from settings import get_setting
+
 from tools import (
     open_in_user_browser,
     scrape_website,
@@ -68,7 +70,8 @@ def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
 
 def _stream_chat(messages: List[Dict[str, Any]]) -> Iterable[ChatResponse]:
     """Yield chat responses from Ollama with streaming enabled."""
-    return chat(model="llama3.1:8b", messages=messages, stream=True)
+    model = get_setting("stream_model", "llama3.1:8b")
+    return chat(model=model, messages=messages, stream=True)
 
 
 
