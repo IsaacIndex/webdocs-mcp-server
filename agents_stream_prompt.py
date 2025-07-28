@@ -77,11 +77,11 @@ def _stream_chat(messages: List[Dict[str, Any]]) -> Iterable[ChatResponse]:
 
 DEFAULT_SYSTEM_PROMPT = (
     "The web scraper defaults to Playwright mode. Use Selenium only when a user explicitly requests cookie-based browsing. "
-    "When you need to call a tool, respond with <tool>{\"name\": \"TOOL_NAME\", \"args\": {...}}<\/tool>. "
-    "Use <final>ANSWER<\/final> when finished. Tool outputs may be truncated and might not be valid JSON. "
+    "When you need to call a tool, respond with <tool>{\"name\": \"TOOL_NAME\", \"args\": {...}}</tool>. "
+    "Use <final>ANSWER</final> when finished. Tool outputs may be truncated and might not be valid JSON. "
     "The full text is stored in memory. Use "
     f"{FULL_OUTPUT_PLACEHOLDER} to reference the previous full output when calling new tools."
-    "DO NOT overthink, keep the reasoning straightforward"
+    "DO NOT overthink, keep the reasoning straightforward. DO NOT ask me for follow up questions."
 )
 
 
