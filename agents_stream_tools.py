@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Iterable, List, Optional
 
 import asyncio
@@ -23,6 +24,96 @@ console = Console()
 
 TRUNCATE_AT = 2000
 FULL_OUTPUT_PLACEHOLDER = "<FULL_TOOL_OUTPUT>"
+
+
+@dataclass
+class StreamingAgent:
+    """Simple tool-based agent with a plan/execute/observe loop."""
+
+    query: str
+    messages: List[Dict[str, Any]] = field(init=False)
+    plan_index: Optional[int] = field(default=None, init=False)
+    last_tool_output: Optional[str] = field(default=None, init=False)
+    in_think: bool = field(default=False, init=False)
+
+    def __post_init__(self) -> None:
+        self.messages = [
+            {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
+            {"role": "user", "content": self.query},
+        ]
+
+    def define_plan(self) -> List[Any]:
+        """Ask the model for the next plan and return tool calls."""
+        return self._chat_step()
+
+    def execute_plan(self, tool_calls: List[Any]) -> None:
+        """Run the tools suggested by the model."""
+        for call in tool_calls:
+            name = call.function.name
+            args = call.function.arguments or {}
+            for key, value in list(args.items()):
+                if isinstance(value, str) and FULL_OUTPUT_PLACEHOLDER in value:
+                    args[key] = value.replace(
+                        FULL_OUTPUT_PLACEHOLDER, self.last_tool_output or ""
+                    )
+
+            result = _invoke_tool(name, args)
+            minified = _minify_result(result)
+            full_output = json.dumps(minified, separators=(",", ":"))
+            self.last_tool_output = full_output
+            truncated = full_output
+            if len(full_output) > TRUNCATE_AT:
+                omitted = len(full_output) - TRUNCATE_AT
+                truncated = (
+                    full_output[:TRUNCATE_AT]
+                    + f"...\n[output truncated, {omitted} chars omitted; use {FULL_OUTPUT_PLACEHOLDER} for full output]"
+                )
+            self.messages.append({"role": "tool", "name": name, "content": truncated})
+
+        self.plan_index = _trim_history(self.messages, self.plan_index)
+
+    def observe_and_adjust(self) -> List[Any]:
+        """Observe model output after tools and get the next plan."""
+        return self._chat_step()
+
+    def _chat_step(self) -> List[Any]:
+        final: Optional[ChatResponse] = None
+        tool_calls: List[Any] = []
+        output_buffer = ""
+        for chunk in _stream_chat(self.messages):
+            final = chunk
+            if chunk.message.content:
+                text = chunk.message.content
+                output_buffer += text
+                if "<think>" in text:
+                    self.in_think = True
+                style = "yellow" if self.in_think else "green"
+                if "</think>" in text:
+                    self.in_think = False
+                console.print(text, end="", style=style)
+            if chunk.message.tool_calls:
+                tool_calls.extend(chunk.message.tool_calls)
+        console.print()
+        if output_buffer:
+            logger.info("agent output: %s", output_buffer)
+
+        if not final:
+            return []
+
+        assistant_message = {"role": "assistant", "content": output_buffer}
+        if tool_calls:
+            assistant_message["tool_calls"] = [_minify_tool_call(c) for c in tool_calls]
+        self.messages.append(assistant_message)
+        if self.plan_index is None:
+            self.plan_index = len(self.messages) - 1
+        return tool_calls
+
+    def run(self) -> None:
+        tool_calls = self.define_plan()
+        while tool_calls:
+            self.execute_plan(tool_calls)
+            tool_calls = self.observe_and_adjust()
+        _trim_history(self.messages, self.plan_index)
 
 
 def _minify_result(result: Dict[str, Any]) -> Dict[str, Any]:
@@ -117,71 +208,10 @@ DEFAULT_SYSTEM_PROMPT = (
 
 
 def run(query: str) -> None:
-    """Stream a response, executing tools as needed."""
+    """Run the streaming agent on the given query."""
     logger.info("received query: %s", query)
-    messages: List[Dict[str, Any]] = [
-        {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
-        {"role": "user", "content": query},
-    ]
-    in_think = False
-    last_tool_output: Optional[str] = None
-    plan_index: Optional[int] = None
-
-    while True:
-        final: Optional[ChatResponse] = None
-        tool_calls = []
-        output_buffer = ""
-        for chunk in _stream_chat(messages):
-            final = chunk
-            if chunk.message.content:
-                text = chunk.message.content
-                output_buffer += text
-                if "<think>" in text:
-                    in_think = True
-                style = "yellow" if in_think else "green"
-                if "</think>" in text:
-                    in_think = False
-                console.print(text, end="", style=style)
-            if chunk.message.tool_calls:
-                tool_calls.extend(chunk.message.tool_calls)
-        console.print()
-        if output_buffer:
-            logger.info("agent output: %s", output_buffer)
-
-        if not final:
-            break
-
-        assistant_message = {"role": "assistant", "content": output_buffer}
-        if tool_calls:
-            assistant_message["tool_calls"] = [_minify_tool_call(c) for c in tool_calls]
-        messages.append(assistant_message)
-
-        if not tool_calls:
-            plan_index = _trim_history(messages, plan_index)
-            break
-
-        for call in tool_calls:
-            name = call.function.name
-            args = call.function.arguments or {}
-            # replace placeholder with the stored full tool output
-            for key, value in list(args.items()):
-                if isinstance(value, str) and FULL_OUTPUT_PLACEHOLDER in value:
-                    args[key] = value.replace(FULL_OUTPUT_PLACEHOLDER, last_tool_output or "")
-
-            result = _invoke_tool(name, args)
-            minified = _minify_result(result)
-            full_output = json.dumps(minified, separators=(",", ":"))
-            last_tool_output = full_output
-            truncated = full_output
-            if len(full_output) > TRUNCATE_AT:
-                omitted = len(full_output) - TRUNCATE_AT
-                truncated = (
-                    full_output[:TRUNCATE_AT]
-                    + f"...\n[output truncated, {omitted} chars omitted; use {FULL_OUTPUT_PLACEHOLDER} for full output]"
-                )
-            messages.append({"role": "tool", "name": name, "content": truncated})
-
-        plan_index = _trim_history(messages, plan_index)
+    agent = StreamingAgent(query)
+    agent.run()
 
 
 if __name__ == "__main__":
