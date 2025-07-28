@@ -10,6 +10,8 @@ from langgraph.prebuilt import create_react_agent  # noqa: E402
 from ollama import Client  # noqa: E402
 from rich.console import Console  # noqa: E402
 
+from settings import get_setting  # noqa: E402
+
 from tools import (  # noqa: E402
     open_in_user_browser,
     scrape_website,
@@ -18,7 +20,7 @@ from tools import (  # noqa: E402
     ping,
 )
 
-llm = ChatOllama(model="qwen3:4b")
+llm = ChatOllama(model=get_setting("react_model", "qwen3:4b"))
 client = Client()
 console = Console()
 
@@ -43,7 +45,7 @@ def run(query: str) -> str:
 def stream(query: str) -> None:
     """Stream response tokens for the given query."""
     stream = client.chat(
-        model="qwen3:4b",
+        model=get_setting("react_model", "qwen3:4b"),
         messages=[{"role": "user", "content": query}],
         stream=True,
     )

@@ -1,0 +1,4 @@
+{
+  "stream_model": "llama3.1:8b",
+  "react_model": "qwen3:4b"
+}
