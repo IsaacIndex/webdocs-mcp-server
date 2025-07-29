@@ -119,10 +119,14 @@ class StreamingAgent:
         return tool_calls
 
     def run(self) -> None:
+        console.print("[bold blue]define plan[/bold blue]")
         tool_calls = self.define_plan()
         while tool_calls:
+            console.print("[bold blue]execute plan[/bold blue]")
             self.execute_plan(tool_calls)
+            console.print("[bold blue]observe and adjust[/bold blue]")
             tool_calls = self.observe_and_adjust()
+        console.print("[bold blue]output response[/bold blue]")
         _trim_history(self.messages, self.plan_index)
 
 

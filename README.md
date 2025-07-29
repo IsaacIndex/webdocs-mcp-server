@@ -12,6 +12,7 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 - Multi-step website actions with Playwright
 - FastAPI-based REST API
 - MCP protocol implementation
+- Streaming agent uses a plan/execute/observe workflow
 
 ## Prerequisites
 
@@ -51,8 +52,9 @@ Legacy code is kept in `agents_legacy.py` for reference.
 The old `agents.py` script is deprecated. Use `agents_stream_tools.py` for models that support the tools API. For other models, run `agents_stream_prompt.py`.
 Run the interactive agent with tool support:
 ```bash
-python agents_stream_tools.py "your question here"
+python agents_stream_tools.py [--debug] "your question here"
 ```
+Use the `--debug` flag to print tool calls and intermediate messages.
 For models without tool support:
 ```bash
 python agents_stream_prompt.py "your question here"

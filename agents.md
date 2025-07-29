@@ -78,8 +78,9 @@ Server starts at `http://localhost:8000`
 The older `agents.py` script has been deprecated. Use `agents_stream_tools.py` instead.
 Legacy code is kept in `agents_legacy.py` for reference.
 ```bash
-python agents_stream_tools.py "your question here"
+python agents_stream_tools.py [--debug] "your question here"
 ```
+Use `--debug` to print detailed tool calls and messages.
 
 ### API Documentation
 - Swagger UI: `http://localhost:8000/docs`
