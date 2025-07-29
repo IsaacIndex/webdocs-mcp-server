@@ -35,12 +35,15 @@ class StreamingAgent:
     plan_index: Optional[int] = field(default=None, init=False)
     last_tool_output: Optional[str] = field(default=None, init=False)
     in_think: bool = field(default=False, init=False)
+    debug: bool = False
 
     def __post_init__(self) -> None:
         self.messages = [
             {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
             {"role": "user", "content": self.query},
         ]
+        if self.debug:
+            console.print(f"[magenta]Initialized messages: {self.messages}[/magenta]")
 
     def define_plan(self) -> List[Any]:
         """Ask the model for the next plan and return tool calls."""
@@ -57,7 +60,7 @@ class StreamingAgent:
                         FULL_OUTPUT_PLACEHOLDER, self.last_tool_output or ""
                     )
 
-            result = _invoke_tool(name, args)
+            result = _invoke_tool(name, args, debug=self.debug)
             minified = _minify_result(result)
             full_output = json.dumps(minified, separators=(",", ":"))
             self.last_tool_output = full_output
@@ -77,6 +80,8 @@ class StreamingAgent:
         return self._chat_step()
 
     def _chat_step(self) -> List[Any]:
+        if self.debug:
+            console.print(f"[magenta]Messages: {self.messages}[/magenta]")
         final: Optional[ChatResponse] = None
         tool_calls: List[Any] = []
         output_buffer = ""
@@ -100,10 +105,15 @@ class StreamingAgent:
         if not final:
             return []
 
+        if self.debug and tool_calls:
+            console.print(f"[magenta]Tool calls: {tool_calls}[/magenta]")
+
         assistant_message = {"role": "assistant", "content": output_buffer}
         if tool_calls:
             assistant_message["tool_calls"] = [_minify_tool_call(c) for c in tool_calls]
         self.messages.append(assistant_message)
+        if self.debug:
+            console.print(f"[magenta]Assistant message: {assistant_message}[/magenta]")
         if self.plan_index is None:
             self.plan_index = len(self.messages) - 1
         return tool_calls
@@ -173,19 +183,25 @@ TOOL_MAP: Dict[str, Callable[..., Any]] = {
 }
 
 
-def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
+def _invoke_tool(name: str, args: Dict[str, Any], *, debug: bool) -> Dict[str, Any]:
     """Invoke a tool by name and return its result."""
     func = TOOL_MAP.get(name)
-    console.print(f"[cyan]Calling function: {name}[/cyan]")
-    console.print(f"[cyan]Arguments: {args}[/cyan]")
-    console.print()
+    if debug:
+        console.print(f"[cyan]Calling function: {name}[/cyan]")
+        console.print(f"[cyan]Arguments: {args}[/cyan]")
+        console.print()
     logger.info("calling function %s with args %s", name, args)
     if not func:
         return {"status": "error", "message": f"unknown tool {name}", "data": None}
     try:
         if inspect.iscoroutinefunction(func):
-            return asyncio.run(func(**args))
-        return func(**args)
+            result = asyncio.run(func(**args))
+        else:
+            result = func(**args)
+        if debug:
+            console.print(f"[cyan]Result: {result}[/cyan]")
+            console.print()
+        return result
     except Exception as exc:  # noqa: BLE001
         logger.exception("error during tool execution: %s", exc)
         return {"status": "error", "message": str(exc), "data": None}
@@ -207,21 +223,26 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
-def run(query: str) -> None:
+def run(query: str, *, debug: bool = False) -> None:
     """Run the streaming agent on the given query."""
     logger.info("received query: %s", query)
-    agent = StreamingAgent(query)
+    agent = StreamingAgent(query, debug=debug)
     agent.run()
 
 
 if __name__ == "__main__":
-    import sys
+    import argparse
     from tools.webscraper import scraper
 
-    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else input("Query: ")
+    parser = argparse.ArgumentParser(description="run the streaming agent")
+    parser.add_argument("query", nargs="*", help="agent query")
+    parser.add_argument("--debug", action="store_true", help="enable debug mode")
+    args = parser.parse_args()
+
+    query = " ".join(args.query) if args.query else input("Query: ")
     logger.info("starting agent")
     try:
-        run(query)
+        run(query, debug=args.debug)
     finally:
         asyncio.run(scraper.cleanup())
         logger.info("agent shutdown")
