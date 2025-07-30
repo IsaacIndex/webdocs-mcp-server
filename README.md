@@ -13,6 +13,7 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 - FastAPI-based REST API
 - MCP protocol implementation
 - Streaming agent uses a planner, executor, and summarizer
+- Each tool step is handled by a dedicated executor agent
 
 ## Prerequisites
 

@@ -30,6 +30,15 @@ FULL_OUTPUT_PLACEHOLDER = "<FULL_TOOL_OUTPUT>"
 PLAN_PATTERN = re.compile(r"<plan>(.*?)</plan>", re.DOTALL)
 TOOL_PATTERN = re.compile(r"<tool>(.*?)</tool>", re.DOTALL)
 
+SYSTEM_PROMPT = (
+    "The web scraper defaults to Playwright mode. "
+    "Use Selenium only when a user explicitly requests cookie-based browsing. "
+    "Tool outputs may be truncated and might not be valid JSON. "
+    "The full text is stored in memory. Use "
+    f"{FULL_OUTPUT_PLACEHOLDER} to reference the previous full output when calling new tools."  # noqa: E501
+    "DO NOT overthink, keep the reasoning straightforward."
+)
+
 PLANNER_PROMPT = (
     "List the sequence of tools you will call to answer the user's question. "
     "Respond with <plan>[\"TOOL_NAME\", ...]</plan> and nothing else."
@@ -42,78 +51,102 @@ EXECUTOR_PROMPT = (
 )
 
 SUMMARY_PROMPT = (
-    "You are the summarizer agent. Use the last tool output to answer the user's" 
+    "You are the summarizer agent. Use the last tool output to answer the user's"
     " question inside <final>ANSWER</final>."
 )
 
 
+def _chat(
+    messages: List[Dict[str, Any]], *, tools: Optional[List[Any]] = None, debug: bool = False
+) -> str:
+    """Stream chat output and return the accumulated text."""
+    if debug:
+        console.print(f"[magenta]Messages: {messages}[/magenta]")
+    output_buffer = ""
+    for chunk in _stream_chat(messages, tools=tools):
+        if chunk.message.content:
+            text = chunk.message.content
+            output_buffer += text
+            console.print(text, end="", style="green")
+    console.print()
+    if output_buffer:
+        logger.info("agent output: %s", output_buffer)
+    return output_buffer
+
+
 @dataclass
-class StreamingAgent:
-    """Multi-agent workflow with planning, execution, and summarization."""
+class PlannerAgent:
+    """LLM agent that produces a plan of tool names."""
 
     query: str
     debug: bool = False
 
-    def _chat(self, messages: List[Dict[str, Any]], *, tools: Optional[List[Any]] = None) -> str:
-        if self.debug:
-            console.print(f"[magenta]Messages: {messages}[/magenta]")
-        output_buffer = ""
-        for chunk in _stream_chat(messages, tools=tools):
-            if chunk.message.content:
-                text = chunk.message.content
-                output_buffer += text
-                console.print(text, end="", style="green")
-        console.print()
-        if output_buffer:
-            logger.info("agent output: %s", output_buffer)
-        return output_buffer
-
-    def define_plan(self) -> List[str]:
+    def run(self) -> List[str]:
         messages = [
-            {"role": "system", "content": PLANNER_PROMPT},
+            {"role": "system", "content": f"{SYSTEM_PROMPT} {PLANNER_PROMPT}"},
             {"role": "user", "content": self.query},
         ]
-        output = self._chat(messages, tools=None)
+        output = _chat(messages, tools=None, debug=self.debug)
         match = PLAN_PATTERN.search(output)
-        if not match:
-            return []
-        return json.loads(match.group(1))
+        return json.loads(match.group(1)) if match else []
 
-    def get_args(self, tool_name: str, last_output: str) -> Dict[str, Any]:
-        user_text = json.dumps({"query": self.query, "last_output": last_output})
+
+@dataclass
+class ExecutorAgent:
+    """LLM agent that determines tool arguments and executes the tool."""
+
+    query: str
+    tool_name: str
+    last_output: str
+    debug: bool = False
+
+    def run(self) -> Dict[str, Any]:
+        user_text = json.dumps({"query": self.query, "last_output": self.last_output})
         messages = [
-            {"role": "system", "content": EXECUTOR_PROMPT.format(tool=tool_name)},
+            {"role": "system", "content": EXECUTOR_PROMPT.format(tool=self.tool_name)},
             {"role": "user", "content": user_text},
         ]
-        output = self._chat(messages)
+        output = _chat(messages, debug=self.debug)
         match = TOOL_PATTERN.search(output)
-        if not match:
-            return {}
-        data = json.loads(match.group(1))
-        return data.get("args", {})
+        args = json.loads(match.group(1)).get("args", {}) if match else {}
+        return _invoke_tool(self.tool_name, args, debug=self.debug)
 
-    def summarize(self, last_output: str) -> None:
+
+@dataclass
+class SummarizerAgent:
+    """LLM agent that summarizes the final tool output."""
+
+    query: str
+    last_output: str
+    debug: bool = False
+
+    def run(self) -> None:
         messages = [
             {"role": "system", "content": SUMMARY_PROMPT},
-            {
-                "role": "user",
-                "content": json.dumps({"query": self.query, "last_output": last_output}),
-            },
+            {"role": "user", "content": json.dumps({"query": self.query, "last_output": self.last_output})},
         ]
-        self._chat(messages, tools=None)
+        _chat(messages, tools=None, debug=self.debug)
+
+
+@dataclass
+class StreamingAgent:
+    """Orchestrates planner, executor, and summarizer agents."""
+
+    query: str
+    debug: bool = False
 
     def run(self) -> None:
         console.print("[bold blue]define plan[/bold blue]")
-        plan = self.define_plan()
+        plan = PlannerAgent(self.query, debug=self.debug).run()
         last_output = ""
         for tool_name in plan:
             console.print(f"[bold blue]run {tool_name}[/bold blue]")
-            args = self.get_args(tool_name, last_output)
-            result = _invoke_tool(tool_name, args, debug=self.debug)
-            full_output = json.dumps(_minify_result(result), separators=(",", ":"))
-            last_output = full_output
+            result = ExecutorAgent(
+                self.query, tool_name, last_output, debug=self.debug
+            ).run()
+            last_output = json.dumps(_minify_result(result), separators=(",", ":"))
         console.print("[bold blue]summarize[/bold blue]")
-        self.summarize(last_output)
+        SummarizerAgent(self.query, last_output, debug=self.debug).run()
 
 
 def _minify_result(result: Dict[str, Any]) -> Dict[str, Any]:

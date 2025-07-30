@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List
 
 import re
@@ -28,6 +29,15 @@ FULL_OUTPUT_PLACEHOLDER = "<FULL_TOOL_OUTPUT>"
 TOOL_PATTERN = re.compile(r"<tool>(.*?)</tool>", re.DOTALL)
 PLAN_PATTERN = re.compile(r"<plan>(.*?)</plan>", re.DOTALL)
 FINAL_PATTERN = re.compile(r"<final>(.*?)</final>", re.DOTALL)
+
+SYSTEM_PROMPT = (
+    "The web scraper defaults to Playwright mode. "
+    "Use Selenium only when a user explicitly requests cookie-based browsing. "
+    "Tool outputs may be truncated and might not be valid JSON. "
+    "The full text is stored in memory. Use "
+    f"{FULL_OUTPUT_PLACEHOLDER} to reference the previous full output when calling new tools."  # noqa: E501
+    "DO NOT overthink, keep the reasoning straightforward."
+)
 project_dir = os.path.dirname(os.path.abspath(__file__))
 log_dir = os.path.join(project_dir, "logs")
 os.makedirs(log_dir, exist_ok=True)
@@ -88,9 +98,10 @@ SUMMARY_PROMPT = (
 )
 
 
-
-def _collect(messages: List[Dict[str, Any]]) -> str:
+def _chat(messages: List[Dict[str, Any]], *, debug: bool = False) -> str:
     """Stream chat and return the accumulated content."""
+    if debug:
+        console.print(f"[magenta]Messages: {messages}[/magenta]")
     in_think = False
     output_buffer = ""
     for chunk in _stream_chat(messages):
@@ -109,44 +120,90 @@ def _collect(messages: List[Dict[str, Any]]) -> str:
     return output_buffer
 
 
-def run(query: str) -> None:
-    """Stream a response using planner, executor, and summarizer."""
-    logger.info("received query: %s", query)
+@dataclass
+class PlannerAgent:
+    query: str
+    debug: bool = False
 
-    console.print("[bold blue]define plan[/bold blue]")
-    plan_output = _collect([
-        {"role": "system", "content": PLANNER_PROMPT},
-        {"role": "user", "content": query},
-    ])
-    match = PLAN_PATTERN.search(plan_output)
-    plan: List[str] = json.loads(match.group(1)) if match else []
+    def run(self) -> List[str]:
+        messages = [
+            {"role": "system", "content": f"{SYSTEM_PROMPT} {PLANNER_PROMPT}"},
+            {"role": "user", "content": self.query},
+        ]
+        output = _chat(messages, debug=self.debug)
+        match = PLAN_PATTERN.search(output)
+        return json.loads(match.group(1)) if match else []
 
-    last_output = ""
-    for tool_name in plan:
-        console.print(f"[bold blue]run {tool_name}[/bold blue]")
-        args_output = _collect([
-            {"role": "system", "content": EXECUTOR_PROMPT.format(tool=tool_name)},
-            {"role": "user", "content": json.dumps({"query": query, "last_output": last_output})},
-        ])
-        match = TOOL_PATTERN.search(args_output)
+
+@dataclass
+class ExecutorAgent:
+    query: str
+    tool_name: str
+    last_output: str
+    debug: bool = False
+
+    def run(self) -> Dict[str, Any]:
+        user_text = json.dumps({"query": self.query, "last_output": self.last_output})
+        messages = [
+            {"role": "system", "content": EXECUTOR_PROMPT.format(tool=self.tool_name)},
+            {"role": "user", "content": user_text},
+        ]
+        output = _chat(messages, debug=self.debug)
+        match = TOOL_PATTERN.search(output)
         args = json.loads(match.group(1)).get("args", {}) if match else {}
-        result = _invoke_tool(tool_name, args)
-        last_output = json.dumps(result)
-    console.print("[bold blue]summarize[/bold blue]")
-    _collect([
-        {"role": "system", "content": SUMMARY_PROMPT},
-        {"role": "user", "content": json.dumps({"query": query, "last_output": last_output})},
-    ])
+        return _invoke_tool(self.tool_name, args)
+
+
+@dataclass
+class SummarizerAgent:
+    query: str
+    last_output: str
+    debug: bool = False
+
+    def run(self) -> None:
+        messages = [
+            {"role": "system", "content": SUMMARY_PROMPT},
+            {"role": "user", "content": json.dumps({"query": self.query, "last_output": self.last_output})},
+        ]
+        _chat(messages, debug=self.debug)
+
+
+@dataclass
+class StreamingAgent:
+    query: str
+    debug: bool = False
+
+    def run(self) -> None:
+        console.print("[bold blue]define plan[/bold blue]")
+        plan = PlannerAgent(self.query, debug=self.debug).run()
+        last_output = ""
+        for tool_name in plan:
+            console.print(f"[bold blue]run {tool_name}[/bold blue]")
+            result = ExecutorAgent(self.query, tool_name, last_output, debug=self.debug).run()
+            last_output = json.dumps(result)
+        console.print("[bold blue]summarize[/bold blue]")
+        SummarizerAgent(self.query, last_output, debug=self.debug).run()
+
+
+def run(query: str, *, debug: bool = False) -> None:
+    """Run the streaming agent with prompt-based tool planning."""
+    agent = StreamingAgent(query, debug=debug)
+    agent.run()
 
 
 if __name__ == "__main__":
-    import sys
+    import argparse
     from tools.webscraper import scraper
 
-    query = " ".join(sys.argv[1:]) if len(sys.argv) > 1 else input("Query: ")
+    parser = argparse.ArgumentParser(description="run the streaming agent")
+    parser.add_argument("query", nargs="*", help="agent query")
+    parser.add_argument("--debug", action="store_true", help="enable debug mode")
+    args = parser.parse_args()
+
+    query = " ".join(args.query) if args.query else input("Query: ")
     logger.info("starting agent")
     try:
-        run(query)
+        run(query, debug=args.debug)
     finally:
         scraper.cleanup()
         logger.info("agent shutdown")
