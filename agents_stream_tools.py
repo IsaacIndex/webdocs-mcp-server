@@ -1,8 +1,10 @@
 import json
 import logging
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable, Dict, Iterable, List, Optional
+
+import re
 
 import asyncio
 import inspect
@@ -20,114 +22,120 @@ from tools import (
     ping,
 )
 
+AVAILABLE_TOOLS = [
+    "open_in_user_browser",
+    "scrape_website",
+    "extract_links",
+    "download_pdfs",
+    "ping",
+]
+
 console = Console()
 
 TRUNCATE_AT = 2000
 FULL_OUTPUT_PLACEHOLDER = "<FULL_TOOL_OUTPUT>"
 
+PLAN_PATTERN = re.compile(r"<plan>(.*?)</plan>", re.DOTALL)
+TOOL_PATTERN = re.compile(r"<tool>(.*?)</tool>", re.DOTALL)
+
+PLANNER_PROMPT = (
+    "List the sequence of tools you will call to answer the user's question. "
+    "Available tools are: "
+    + ", ".join(AVAILABLE_TOOLS)
+    + ". Respond ONLY with <plan>[\"TOOL_NAME\", ...]</plan> using those names."
+)
+
+EXECUTOR_PROMPT = (
+    "You are the execution agent for {tool}. "
+    "Given the query and the previous tool output, return a single tool call in "
+    "<tool>{\"name\": \"{tool}\", \"args\": {...}}</tool>."
+)
+
+SUMMARY_PROMPT = (
+    "You are the summarizer agent. Use the last tool output to answer the user's"
+    " question inside <final>ANSWER</final>."
+)
+
+DEFAULT_SYSTEM_PROMPT = (
+    "The web scraper defaults to Playwright mode. "
+    "Use Selenium only when a user explicitly requests cookie-based browsing. "
+    "Tool outputs may be truncated and might not be valid JSON. "
+    "The full text is stored in memory. Use "
+    f"{FULL_OUTPUT_PLACEHOLDER} to reference the previous full output when calling new tools."
+    " DO NOT overthink, keep the reasoning straightforward."
+)
+
 
 @dataclass
 class StreamingAgent:
-    """Simple tool-based agent with a plan/execute/observe loop."""
+    """Multi-agent workflow with planning, execution, and summarization."""
 
     query: str
-    messages: List[Dict[str, Any]] = field(init=False)
-    plan_index: Optional[int] = field(default=None, init=False)
-    last_tool_output: Optional[str] = field(default=None, init=False)
-    in_think: bool = field(default=False, init=False)
     debug: bool = False
 
-    def __post_init__(self) -> None:
-        self.messages = [
-            {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
-            {"role": "user", "content": self.query},
-        ]
+    def _chat(self, messages: List[Dict[str, Any]], *, tools: Optional[List[Any]] = None) -> str:
         if self.debug:
-            console.print(f"[magenta]Initialized messages: {self.messages}[/magenta]")
-
-    def define_plan(self) -> List[Any]:
-        """Ask the model for the next plan and return tool calls."""
-        return self._chat_step()
-
-    def execute_plan(self, tool_calls: List[Any]) -> None:
-        """Run the tools suggested by the model."""
-        for call in tool_calls:
-            name = call.function.name
-            args = call.function.arguments or {}
-            for key, value in list(args.items()):
-                if isinstance(value, str) and FULL_OUTPUT_PLACEHOLDER in value:
-                    args[key] = value.replace(
-                        FULL_OUTPUT_PLACEHOLDER, self.last_tool_output or ""
-                    )
-
-            result = _invoke_tool(name, args, debug=self.debug)
-            minified = _minify_result(result)
-            full_output = json.dumps(minified, separators=(",", ":"))
-            self.last_tool_output = full_output
-            truncated = full_output
-            if len(full_output) > TRUNCATE_AT:
-                omitted = len(full_output) - TRUNCATE_AT
-                truncated = (
-                    full_output[:TRUNCATE_AT]
-                    + f"...\n[output truncated, {omitted} chars omitted; use {FULL_OUTPUT_PLACEHOLDER} for full output]"
-                )
-            self.messages.append({"role": "tool", "name": name, "content": truncated})
-
-        self.plan_index = _trim_history(self.messages, self.plan_index)
-
-    def observe_and_adjust(self) -> List[Any]:
-        """Observe model output after tools and get the next plan."""
-        return self._chat_step()
-
-    def _chat_step(self) -> List[Any]:
-        if self.debug:
-            console.print(f"[magenta]Messages: {self.messages}[/magenta]")
-        final: Optional[ChatResponse] = None
-        tool_calls: List[Any] = []
+            console.print(f"[magenta]Messages: {messages}[/magenta]")
         output_buffer = ""
-        for chunk in _stream_chat(self.messages):
-            final = chunk
+        for chunk in _stream_chat(messages, tools=tools):
             if chunk.message.content:
                 text = chunk.message.content
                 output_buffer += text
-                if "<think>" in text:
-                    self.in_think = True
-                style = "yellow" if self.in_think else "green"
-                if "</think>" in text:
-                    self.in_think = False
-                console.print(text, end="", style=style)
-            if chunk.message.tool_calls:
-                tool_calls.extend(chunk.message.tool_calls)
+                console.print(text, end="", style="green")
         console.print()
         if output_buffer:
             logger.info("agent output: %s", output_buffer)
+        return output_buffer
 
-        if not final:
+    def define_plan(self) -> List[str]:
+        messages = [
+            {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
+            {"role": "system", "content": PLANNER_PROMPT},
+            {"role": "user", "content": self.query},
+        ]
+        output = self._chat(messages, tools=None)
+        match = PLAN_PATTERN.search(output)
+        if not match:
             return []
+        return json.loads(match.group(1))
 
-        if self.debug and tool_calls:
-            console.print(f"[magenta]Tool calls: {tool_calls}[/magenta]")
+    def get_args(self, tool_name: str, last_output: str) -> Dict[str, Any]:
+        user_text = json.dumps({"query": self.query, "last_output": last_output})
+        messages = [
+            {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
+            {"role": "system", "content": EXECUTOR_PROMPT.format(tool=tool_name)},
+            {"role": "user", "content": user_text},
+        ]
+        output = self._chat(messages)
+        match = TOOL_PATTERN.search(output)
+        if not match:
+            return {}
+        data = json.loads(match.group(1))
+        return data.get("args", {})
 
-        assistant_message = {"role": "assistant", "content": output_buffer}
-        if tool_calls:
-            assistant_message["tool_calls"] = [_minify_tool_call(c) for c in tool_calls]
-        self.messages.append(assistant_message)
-        if self.debug:
-            console.print(f"[magenta]Assistant message: {assistant_message}[/magenta]")
-        if self.plan_index is None:
-            self.plan_index = len(self.messages) - 1
-        return tool_calls
+    def summarize(self, last_output: str) -> None:
+        messages = [
+            {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
+            {"role": "system", "content": SUMMARY_PROMPT},
+            {
+                "role": "user",
+                "content": json.dumps({"query": self.query, "last_output": last_output}),
+            },
+        ]
+        self._chat(messages, tools=None)
 
     def run(self) -> None:
         console.print("[bold blue]define plan[/bold blue]")
-        tool_calls = self.define_plan()
-        while tool_calls:
-            console.print("[bold blue]execute plan[/bold blue]")
-            self.execute_plan(tool_calls)
-            console.print("[bold blue]observe and adjust[/bold blue]")
-            tool_calls = self.observe_and_adjust()
-        console.print("[bold blue]output response[/bold blue]")
-        _trim_history(self.messages, self.plan_index)
+        plan = self.define_plan()
+        last_output = ""
+        for tool_name in plan:
+            console.print(f"[bold blue]run {tool_name}[/bold blue]")
+            args = self.get_args(tool_name, last_output)
+            result = _invoke_tool(tool_name, args, debug=self.debug)
+            full_output = json.dumps(_minify_result(result), separators=(",", ":"))
+            last_output = full_output
+        console.print("[bold blue]summarize[/bold blue]")
+        self.summarize(last_output)
 
 
 def _minify_result(result: Dict[str, Any]) -> Dict[str, Any]:
@@ -139,29 +147,8 @@ def _minify_result(result: Dict[str, Any]) -> Dict[str, Any]:
     return {}
 
 
-def _minify_tool_call(call: Any) -> Dict[str, Any]:
-    """Remove extraneous fields from a tool call object."""
-    data = call.model_dump()
-    data.pop("id", None)
-    data.pop("type", None)
-    return data
 
 
-def _trim_history(messages: List[Dict[str, Any]], plan_index: Optional[int]) -> Optional[int]:
-    """Keep the system prompt, user query, initial plan and recent messages."""
-    if plan_index is None:
-        for i, msg in enumerate(messages):
-            if msg.get("role") == "assistant":
-                plan_index = i
-                break
-
-    keep = {0, 1}
-    if plan_index is not None:
-        keep.add(plan_index)
-    start = max(len(messages) - 4, max(keep) + 1 if keep else 0)
-    keep.update(range(start, len(messages)))
-    messages[:] = [m for i, m in enumerate(messages) if i in keep]
-    return plan_index
 
 
 project_dir = os.path.dirname(os.path.abspath(__file__))
@@ -211,20 +198,16 @@ def _invoke_tool(name: str, args: Dict[str, Any], *, debug: bool) -> Dict[str, A
         return {"status": "error", "message": str(exc), "data": None}
 
 
-def _stream_chat(messages: List[Dict[str, Any]]) -> Iterable[ChatResponse]:
+def _stream_chat(
+    messages: List[Dict[str, Any]], *, tools: Optional[List[Any]] = None
+) -> Iterable[ChatResponse]:
     """Yield chat responses from Ollama with streaming enabled."""
     model = get_setting("stream_model", "llama3.1:8b")
-    return chat(model=model, messages=messages, tools=list(TOOL_MAP.values()), stream=True)
+    if tools is None:
+        tools = list(TOOL_MAP.values())
+    return chat(model=model, messages=messages, tools=tools, stream=True)
 
 
-DEFAULT_SYSTEM_PROMPT = (
-    "The web scraper defaults to Playwright mode. "
-    "Use Selenium only when a user explicitly requests cookie-based browsing. "
-    "Tool outputs may be truncated and might not be valid JSON. "
-    "The full text is stored in memory. Use "
-    f"{FULL_OUTPUT_PLACEHOLDER} to reference the previous full output when calling new tools."
-    "DO NOT overthink, keep the reasoning straightforward"
-)
 
 
 def run(query: str, *, debug: bool = False) -> None:
