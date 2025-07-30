@@ -12,7 +12,7 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 - Multi-step website actions with Playwright
 - FastAPI-based REST API
 - MCP protocol implementation
-- Streaming agent uses a plan/execute/observe workflow
+- Streaming agent uses a planner, executor, and summarizer
 
 ## Prerequisites
 

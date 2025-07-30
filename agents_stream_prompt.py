@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import Any, Callable, Dict, Iterable, List
 
 import re
 import asyncio
@@ -26,6 +26,7 @@ TRUNCATE_AT = 2000
 FULL_OUTPUT_PLACEHOLDER = "<FULL_TOOL_OUTPUT>"
 
 TOOL_PATTERN = re.compile(r"<tool>(.*?)</tool>", re.DOTALL)
+PLAN_PATTERN = re.compile(r"<plan>(.*?)</plan>", re.DOTALL)
 FINAL_PATTERN = re.compile(r"<final>(.*?)</final>", re.DOTALL)
 project_dir = os.path.dirname(os.path.abspath(__file__))
 log_dir = os.path.join(project_dir, "logs")
@@ -73,74 +74,69 @@ def _stream_chat(messages: List[Dict[str, Any]]) -> Iterable[ChatResponse]:
     model = get_setting("stream_model", "llama3.1:8b")
     return chat(model=model, messages=messages, stream=True)
 
+PLANNER_PROMPT = (
+    "List the sequence of tools you will call. Respond with <plan>[\"TOOL_NAME\", ...]</plan>."
+)
 
+EXECUTOR_PROMPT = (
+    "You are the execution agent for {tool}. Given the query and previous output, "
+    "return one <tool>{\"name\": \"{tool}\", \"args\": {...}}</tool>."
+)
 
-DEFAULT_SYSTEM_PROMPT = (
-    "The web scraper defaults to Playwright mode. Use Selenium only when a user explicitly requests cookie-based browsing. "
-    "When you need to call a tool, respond with <tool>{\"name\": \"TOOL_NAME\", \"args\": {...}}</tool>. "
-    "Use <final>ANSWER</final> when finished. Tool outputs may be truncated and might not be valid JSON. "
-    "The full text is stored in memory. Use "
-    f"{FULL_OUTPUT_PLACEHOLDER} to reference the previous full output when calling new tools."
-    "DO NOT overthink, keep the reasoning straightforward. DO NOT ask me for follow up questions."
+SUMMARY_PROMPT = (
+    "You are the summarizer agent. Use the last tool output to answer the question in <final>ANSWER</final>."
 )
 
 
 
-def run(query: str) -> None:
-    """Stream a response, executing tools as needed."""
-    logger.info("received query: %s", query)
-    messages: List[Dict[str, Any]] = [
-        {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
-        {"role": "user", "content": query},
-    ]
+def _collect(messages: List[Dict[str, Any]]) -> str:
+    """Stream chat and return the accumulated content."""
     in_think = False
-    last_tool_output: Optional[str] = None
+    output_buffer = ""
+    for chunk in _stream_chat(messages):
+        if chunk.message.content:
+            text = chunk.message.content
+            output_buffer += text
+            if "<think>" in text:
+                in_think = True
+            style = "yellow" if in_think else "green"
+            if "</think>" in text:
+                in_think = False
+            console.print(text, end="", style=style)
+    console.print()
+    if output_buffer:
+        logger.info("agent output: %s", output_buffer)
+    return output_buffer
 
-    while True:
-        final: Optional[ChatResponse] = None
-        output_buffer = ""
-        for chunk in _stream_chat(messages):
-            final = chunk
-            if chunk.message.content:
-                text = chunk.message.content
-                output_buffer += text
-                if "<think>" in text:
-                    in_think = True
-                style = "yellow" if in_think else "green"
-                if "</think>" in text:
-                    in_think = False
-                console.print(text, end="", style=style)
-        console.print()
-        if output_buffer:
-            logger.info("agent output: %s", output_buffer)
 
-        if not final:
-            break
+def run(query: str) -> None:
+    """Stream a response using planner, executor, and summarizer."""
+    logger.info("received query: %s", query)
 
-        messages.append({"role": "assistant", "content": output_buffer})
+    console.print("[bold blue]define plan[/bold blue]")
+    plan_output = _collect([
+        {"role": "system", "content": PLANNER_PROMPT},
+        {"role": "user", "content": query},
+    ])
+    match = PLAN_PATTERN.search(plan_output)
+    plan: List[str] = json.loads(match.group(1)) if match else []
 
-        match = TOOL_PATTERN.search(output_buffer)
-        if not match:
-            break
-
-        call_data = json.loads(match.group(1))
-        name = call_data.get("name")
-        args = call_data.get("args", {})
-        for key, value in list(args.items()):
-            if isinstance(value, str) and FULL_OUTPUT_PLACEHOLDER in value:
-                args[key] = value.replace(FULL_OUTPUT_PLACEHOLDER, last_tool_output or "")
-
-        result = _invoke_tool(name, args)
-        full_output = json.dumps(result)
-        last_tool_output = full_output
-        truncated = full_output
-        if len(full_output) > TRUNCATE_AT:
-            omitted = len(full_output) - TRUNCATE_AT
-            truncated = (
-                full_output[:TRUNCATE_AT]
-                + f"...\n[output truncated, {omitted} chars omitted; use {FULL_OUTPUT_PLACEHOLDER} for full output]"
-            )
-        messages.append({"role": "tool", "name": name, "content": truncated})
+    last_output = ""
+    for tool_name in plan:
+        console.print(f"[bold blue]run {tool_name}[/bold blue]")
+        args_output = _collect([
+            {"role": "system", "content": EXECUTOR_PROMPT.format(tool=tool_name)},
+            {"role": "user", "content": json.dumps({"query": query, "last_output": last_output})},
+        ])
+        match = TOOL_PATTERN.search(args_output)
+        args = json.loads(match.group(1)).get("args", {}) if match else {}
+        result = _invoke_tool(tool_name, args)
+        last_output = json.dumps(result)
+    console.print("[bold blue]summarize[/bold blue]")
+    _collect([
+        {"role": "system", "content": SUMMARY_PROMPT},
+        {"role": "user", "content": json.dumps({"query": query, "last_output": last_output})},
+    ])
 
 
 if __name__ == "__main__":
