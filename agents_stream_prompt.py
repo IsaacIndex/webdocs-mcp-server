@@ -59,6 +59,23 @@ TOOL_MAP: Dict[str, Callable[..., Any]] = {
 }
 
 
+def _extract_plan(text: str) -> List[str]:
+    """Return a list of tool names from the model output."""
+    match = PLAN_PATTERN.search(text)
+    if match:
+        try:
+            return json.loads(match.group(1))
+        except json.JSONDecodeError:
+            pass
+    pattern = "|".join(re.escape(t) for t in AVAILABLE_TOOLS)
+    found: List[str] = []
+    for m in re.finditer(pattern, text):
+        tool = m.group(0)
+        if tool not in found:
+            found.append(tool)
+    return found
+
+
 def _invoke_tool(name: str, args: Dict[str, Any]) -> Dict[str, Any]:
     """Invoke a tool by name and return its result."""
     func = TOOL_MAP.get(name)
@@ -86,16 +103,19 @@ PLANNER_PROMPT = (
     "List the sequence of tools you will call. "
     "Available tools are: "
     + ", ".join(AVAILABLE_TOOLS)
-    + ". Respond ONLY with <plan>[\"TOOL_NAME\", ...]</plan> using those names."
+    + ". Respond ONLY with <plan>[\"TOOL_NAME\", ...]</plan> using those names. "
+    "Do not put the <plan> tag inside <think>."
 )
 
 EXECUTOR_PROMPT = (
     "You are the execution agent for {tool}. Given the query and previous output, "
-    "return one <tool>{\"name\": \"{tool}\", \"args\": {...}}</tool>."
+    "return one <tool>{\"name\": \"{tool}\", \"args\": {...}}</tool>. "
+    "Do not put the <tool> tag inside <think>."
 )
 
 SUMMARY_PROMPT = (
-    "You are the summarizer agent. Use the last tool output to answer the question in <final>ANSWER</final>."
+    "You are the summarizer agent. Use the last tool output to answer the question in <final>ANSWER</final>. "
+    "Do not wrap <final> inside <think>."
 )
 
 DEFAULT_SYSTEM_PROMPT = (
@@ -137,8 +157,7 @@ def run(query: str) -> None:
         {"role": "system", "content": PLANNER_PROMPT},
         {"role": "user", "content": query},
     ])
-    match = PLAN_PATTERN.search(plan_output)
-    plan: List[str] = json.loads(match.group(1)) if match else []
+    plan = _extract_plan(plan_output)
 
     last_output = ""
     for tool_name in plan:
