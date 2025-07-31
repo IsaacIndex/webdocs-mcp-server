@@ -12,7 +12,8 @@ A web scraping server that implements the Minecraft Control Protocol (MCP) using
 - Multi-step website actions with Playwright
 - FastAPI-based REST API
 - MCP protocol implementation
-- Streaming agent uses a plan/execute/observe workflow
+- Streaming agent uses a planner, a per-step executor agent, and a summarizer
+  - Planner outputs `<plan>` with a list of tool names outside of `<think>`
 
 ## Prerequisites
 
@@ -59,6 +60,11 @@ For models without tool support:
 ```bash
 python agents_stream_prompt.py "your question here"
 ```
+
+Both agents follow a three-part workflow:
+1. **Planner** decides which tools to call and returns `<plan>` containing only tool names outside of `<think>`.
+2. **Executor** runs each step using the previous tool output as context.
+3. **Summarizer** uses the final tool output to answer the query.
 
 ## API Endpoints
 
