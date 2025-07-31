@@ -46,7 +46,6 @@ uv pip install -r requirements.txt
 - `/mcp` endpoint handling:
   - `scrape_website`: Returns text related to a query from a webpage
   - `extract_links`: Fetches a URL and collects all links from the page.
-  - `ping`: Server status check
 
 ### 2. Configuration
 - Environment variables in `.env`:

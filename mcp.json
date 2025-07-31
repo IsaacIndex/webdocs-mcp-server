@@ -35,8 +35,6 @@
         "download pdf links",
         "download pdfs from text",
         "get pdfs",
-        "ping",
-        "check server",
         "react browser"
       ],
       "description": "A FastMCP server that fetches and processes web content from specified URLs using Selenium. Supports fetching website content, extracting links, and health checks.",
@@ -44,10 +42,6 @@
       "retry": {
         "maxAttempts": 3,
         "delay": 1000
-      },
-      "healthCheck": {
-        "endpoint": "/mcp/ping",
-        "interval": 30
       },
       "logging": {
         "level": "warning",
@@ -89,10 +83,6 @@
               "required": true
             }
           }
-        },
-        "ping": {
-          "description": "Check if the server is responsive",
-          "parameters": {}
         },
         "open_browser": {
           "description": "Open a URL in the user's browser with their cookies",

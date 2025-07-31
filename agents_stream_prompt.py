@@ -96,6 +96,7 @@ def _stream_chat(messages: List[Dict[str, Any]]) -> Iterable[ChatResponse]:
     model = get_setting("stream_model", "llama3.1:8b")
     return chat(model=model, messages=messages, stream=True)
 
+
 PLANNER_PROMPT = (
     "List the sequence of tools you will call. "
     "Available tools are: "
@@ -116,9 +117,10 @@ SUMMARY_PROMPT = (
 )
 
 DEFAULT_SYSTEM_PROMPT = (
-    "The web scraper defaults to Playwright mode. Use Selenium only when a user explicitly requests cookie-based browsing. "
+    "The web scraper defaults to Playwright mode. "
+    "Use Selenium only when a user explicitly requests cookie-based browsing. "
     "Tool outputs may be truncated and might not be valid JSON. The full text is stored in memory. "
-    f"Use {FULL_OUTPUT_PLACEHOLDER} to reference the previous full output when calling new tools." 
+    f"Use {FULL_OUTPUT_PLACEHOLDER} to reference the previous full output when calling new tools."
     "DO NOT overthink, keep the reasoning straightforward."
 )
 

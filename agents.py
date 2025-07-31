@@ -17,7 +17,6 @@ from tools import (  # noqa: E402
     scrape_website,
     extract_links,
     download_pdfs,
-    ping,
 )
 
 llm = ChatOllama(model=get_setting("react_model", "qwen3:4b"))
@@ -29,7 +28,6 @@ TOOLS = [
     tool(scrape_website.fn),
     tool(extract_links.fn),
     tool(download_pdfs.fn),
-    tool(ping.fn),
 ]
 
 agent = create_react_agent(llm, TOOLS)

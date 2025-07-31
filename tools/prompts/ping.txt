@@ -1,7 +1,0 @@
-Check if the server is alive
-
-Args:
-  None
-
-Returns:
-  dict: Status information and a timestamp

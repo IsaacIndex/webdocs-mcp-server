@@ -144,10 +144,6 @@ def _minify_result(result: Dict[str, Any]) -> Dict[str, Any]:
     return {}
 
 
-
-
-
-
 project_dir = os.path.dirname(os.path.abspath(__file__))
 log_dir = os.path.join(project_dir, "logs")
 os.makedirs(log_dir, exist_ok=True)
@@ -219,8 +215,6 @@ def _stream_chat(
     if tools is None:
         tools = list(TOOL_MAP.values())
     return chat(model=model, messages=messages, tools=tools, stream=True)
-
-
 
 
 def run(query: str, *, debug: bool = False) -> None:

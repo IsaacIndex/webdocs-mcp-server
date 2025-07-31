@@ -109,12 +109,6 @@ The server fetches the URL and returns all links found on the page.
   ```
 - **Response**: Paths to the downloaded PDF files
 
-#### Ping
-- **URL**: `/mcp`
-- **Method**: POST
-- **Command**: `ping`
-- **Response**: Server status and version information
-
 #### Open Browser
 - **URL**: `/mcp`
 - **Method**: POST
