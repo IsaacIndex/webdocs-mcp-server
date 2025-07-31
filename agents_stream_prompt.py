@@ -17,7 +17,6 @@ from tools import (
     scrape_website,
     extract_links,
     download_pdfs,
-    ping,
 )
 
 AVAILABLE_TOOLS = [
@@ -25,7 +24,6 @@ AVAILABLE_TOOLS = [
     "scrape_website",
     "extract_links",
     "download_pdfs",
-    "ping",
 ]
 
 console = Console()
@@ -55,7 +53,6 @@ TOOL_MAP: Dict[str, Callable[..., Any]] = {
     "scrape_website": scrape_website,
     "extract_links": extract_links,
     "download_pdfs": download_pdfs,
-    "ping": ping,
 }
 
 
