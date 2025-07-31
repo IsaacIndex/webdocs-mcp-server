@@ -19,7 +19,6 @@ from tools import (
     scrape_website,
     extract_links,
     download_pdfs,
-    ping,
 )
 
 AVAILABLE_TOOLS = [
@@ -27,7 +26,6 @@ AVAILABLE_TOOLS = [
     "scrape_website",
     "extract_links",
     "download_pdfs",
-    "ping",
 ]
 
 console = Console()
@@ -49,7 +47,7 @@ PLANNER_PROMPT = (
 EXECUTOR_PROMPT = (
     "You are the execution agent for {tool}. "
     "Given the query and the previous tool output, return a single tool call in "
-    "<tool>{\"name\": \"{tool}\", \"args\": {...}}</tool>. "
+    "<tool>{{\"name\": \"{tool}\", \"args\": {...}}</tool>. "
     "Do not put the <tool> tag inside <think>."
 )
 
@@ -169,7 +167,6 @@ TOOL_MAP: Dict[str, Callable[..., Any]] = {
     "scrape_website": scrape_website,
     "extract_links": extract_links,
     "download_pdfs": download_pdfs,
-    "ping": ping,
 }
 
 
