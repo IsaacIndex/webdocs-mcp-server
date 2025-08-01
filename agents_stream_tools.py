@@ -14,19 +14,10 @@ from ollama import chat, ChatResponse
 
 from settings import get_setting
 
-from tools import (
-    open_in_user_browser,
-    scrape_website,
-    extract_links,
-    download_pdfs,
-)
+from tool_registry import get_available_tools
 
-AVAILABLE_TOOLS = [
-    "open_in_user_browser",
-    "scrape_website",
-    "extract_links",
-    "download_pdfs",
-]
+TOOL_MAP: Dict[str, Callable[..., Any]] = get_available_tools()
+AVAILABLE_TOOLS = list(TOOL_MAP.keys())
 
 console = Console()
 
@@ -37,23 +28,21 @@ PLAN_PATTERN = re.compile(r"<plan>(.*?)</plan>", re.DOTALL)
 TOOL_PATTERN = re.compile(r"<tool>(.*?)</tool>", re.DOTALL)
 
 PLANNER_PROMPT = (
-    "List the sequence of tools you will call to answer the user's question. "
-    "Available tools are: "
+    "You are Planner. Output ONLY newline-separated JSON objects:\n"
+    '{"tool": "<registry_name>", "purpose": "<brief reasoning>"}'
+    "\nAvailable tools: "
     + ", ".join(AVAILABLE_TOOLS)
-    + ". Respond ONLY with <plan>[\"TOOL_NAME\", ...]</plan> using those names. "
-    "Do not put the <plan> tag inside <think>."
 )
 
 EXECUTOR_PROMPT = (
-    "You are the execution agent for {tool}. "
-    "Given the query and the previous tool output, return a single tool call in "
-    "<tool>{{\"name\": \"{tool}\", \"args\": {{}}}}</tool>. "
-    "Do not put the <tool> tag inside <think>."
+    "You are Executor. Decide the best arguments for this tool. "
+    "Output JSON ONLY:\n{\"tool\": \"<same>\", \"args\": {...}}"
 )
 
 SUMMARY_PROMPT = (
-    "You are the summarizer agent. Use the last tool output to answer the user's"
-    " question inside <final>ANSWER</final>. Do not wrap <final> inside <think>."
+    "You are the summarizer agent. Mention which tools executed. "
+    "Produce a concise final report using the plan and execution logs. "
+    "Answer inside <final>ANSWER</final>. Do not wrap <final> inside <think>."
 )
 
 DEFAULT_SYSTEM_PROMPT = (
@@ -66,11 +55,8 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
-@dataclass
-class StreamingAgent:
-    """Multi-agent workflow with planning, execution, and summarization."""
-
-    query: str
+@dataclass(kw_only=True)
+class _BaseAgent:
     debug: bool = False
 
     def _chat(self, messages: List[Dict[str, Any]], *, tools: Optional[List[Any]] = None) -> str:
@@ -85,52 +71,95 @@ class StreamingAgent:
         console.print()
         return output_buffer
 
-    def define_plan(self) -> List[str]:
+
+@dataclass
+class PlannerAgent(_BaseAgent):
+    query: str
+    shared: Dict[str, Any]
+
+    def run(self) -> List[Dict[str, Any]]:
         messages = [
             {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
             {"role": "system", "content": PLANNER_PROMPT},
-            {"role": "user", "content": self.query},
         ]
-        output = self._chat(messages, tools=None)
-        return _extract_plan(output)
-
-    def get_args(self, tool_name: str, last_output: str) -> Dict[str, Any]:
-        user_text = json.dumps({"query": self.query, "last_output": last_output})
-        messages = [
-            {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
-            {"role": "system", "content": EXECUTOR_PROMPT.format(tool=tool_name)},
-            {"role": "user", "content": user_text},
-        ]
+        if self.shared.get("summary"):
+            messages.append({"role": "system", "content": f"Previous summary: {self.shared['summary']}"})
+        messages.append({"role": "user", "content": self.query})
         output = self._chat(messages)
-        match = TOOL_PATTERN.search(output)
-        if not match:
-            return {}
-        data = json.loads(match.group(1))
-        return data.get("args", {})
+        plan = _extract_plan(output)
+        self.shared["plan"] = output
+        self.shared["plan_json"] = plan
+        return plan
 
-    def summarize(self, last_output: str) -> None:
+
+@dataclass
+class ExecutorAgent(_BaseAgent):
+    plan: List[Dict[str, Any]]
+    query: str
+    shared: Dict[str, Any]
+
+    def run(self) -> str:
+        tool_map = get_available_tools()
+        results = []
+        last_output = ""
+        executed = []
+        for step in self.plan:
+            messages = [
+                {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
+                {"role": "system", "content": EXECUTOR_PROMPT},
+                {"role": "user", "content": json.dumps({"query": self.query, "step": step})},
+            ]
+            output = self._chat(messages)
+            match = TOOL_PATTERN.search(output)
+            if not match:
+                continue
+            data = json.loads(match.group(1))
+            name = data.get("tool")
+            args = data.get("args", {})
+            result = _invoke_tool(name, args, tool_map=tool_map, debug=self.debug)
+            executed.append(name)
+            results.append({"tool": name, "args": args, "result": result})
+            last_output = json.dumps(_minify_result(result), separators=(",", ":"))
+        self.shared["execution"] = json.dumps(results)
+        self.shared["executed"] = executed
+        return last_output
+
+
+@dataclass
+class SummarizerAgent(_BaseAgent):
+    query: str
+    shared: Dict[str, Any]
+
+    def run(self, last_output: str) -> str:
         messages = [
             {"role": "system", "content": DEFAULT_SYSTEM_PROMPT},
             {"role": "system", "content": SUMMARY_PROMPT},
-            {
-                "role": "user",
-                "content": json.dumps({"query": self.query, "last_output": last_output}),
-            },
+            {"role": "system", "content": f"Plan: {self.shared.get('plan', '')}"},
+            {"role": "system", "content": f"Execution: {self.shared.get('execution', '')}"},
+            {"role": "system", "content": f"Tools executed: {', '.join(self.shared.get('executed', []))}"},
+            {"role": "user", "content": json.dumps({"query": self.query, "last_output": last_output})},
         ]
-        self._chat(messages, tools=None)
+        output = self._chat(messages)
+        self.shared["summary"] = output
+        return output
+
+
+@dataclass
+class StreamingAgent(_BaseAgent):
+    query: str
+    shared: Dict[str, Any]
 
     def run(self) -> None:
         console.print("[bold blue]define plan[/bold blue]")
-        plan = self.define_plan()
-        last_output = ""
-        for tool_name in plan:
-            console.print(f"[bold blue]run {tool_name}[/bold blue]")
-            args = self.get_args(tool_name, last_output)
-            result = _invoke_tool(tool_name, args, debug=self.debug)
-            full_output = json.dumps(_minify_result(result), separators=(",", ":"))
-            last_output = full_output
+        planner = PlannerAgent(self.query, self.shared, debug=self.debug)
+        plan = planner.run()
+        console.print("[bold blue]execute plan[/bold blue]")
+        executor = ExecutorAgent(plan, self.query, self.shared, debug=self.debug)
+        last_output = executor.run()
         console.print("[bold blue]summarize[/bold blue]")
-        self.summarize(last_output)
+        summarizer = SummarizerAgent(self.query, self.shared, debug=self.debug)
+        summarizer.run(last_output)
+
 
 
 def _minify_result(result: Dict[str, Any]) -> Dict[str, Any]:
@@ -155,35 +184,35 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# Map tool names to their underlying functions for Ollama
-TOOL_MAP: Dict[str, Callable[..., Any]] = {
-    "open_in_user_browser": open_in_user_browser,
-    "scrape_website": scrape_website,
-    "extract_links": extract_links,
-    "download_pdfs": download_pdfs,
-}
 
 
-def _extract_plan(text: str) -> List[str]:
-    """Return a list of tool names from the model output."""
+def _extract_plan(text: str) -> List[Dict[str, Any]]:
+    """Return a list of plan objects from the model output."""
     match = PLAN_PATTERN.search(text)
-    if match:
+    if not match:
+        return []
+    plan_lines = [ln.strip() for ln in match.group(1).splitlines() if ln.strip()]
+    plan: List[Dict[str, Any]] = []
+    for line in plan_lines:
         try:
-            return json.loads(match.group(1))
+            obj = json.loads(line)
         except json.JSONDecodeError:
-            pass
-    pattern = "|".join(re.escape(t) for t in AVAILABLE_TOOLS)
-    found: List[str] = []
-    for m in re.finditer(pattern, text):
-        tool = m.group(0)
-        if tool not in found:
-            found.append(tool)
-    return found
+            continue
+        if isinstance(obj, dict) and "tool" in obj:
+            plan.append(obj)
+    return plan
 
 
-def _invoke_tool(name: str, args: Dict[str, Any], *, debug: bool) -> Dict[str, Any]:
+def _invoke_tool(
+    name: str,
+    args: Dict[str, Any],
+    *,
+    tool_map: Optional[Dict[str, Callable[..., Any]]] = None,
+    debug: bool,
+) -> Dict[str, Any]:
     """Invoke a tool by name and return its result."""
-    func = TOOL_MAP.get(name)
+    mapping = tool_map or TOOL_MAP
+    func = mapping.get(name)
     if debug:
         console.print(f"[cyan]Calling function: {name}[/cyan]")
         console.print(f"[cyan]Arguments: {args}[/cyan]")
@@ -218,7 +247,8 @@ def _stream_chat(
 def run(query: str, *, debug: bool = False) -> None:
     """Run the streaming agent on the given query."""
     logger.info("received query: %s", query)
-    agent = StreamingAgent(query, debug=debug)
+    shared_state: Dict[str, Any] = {"plan": "", "execution": "", "summary": ""}
+    agent = StreamingAgent(query=query, shared=shared_state, debug=debug)
     agent.run()
 
 
