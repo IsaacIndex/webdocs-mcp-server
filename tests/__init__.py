@@ -56,3 +56,39 @@ langgraph_mod = types.ModuleType("langgraph")
 langgraph_mod.prebuilt = prebuilt_mod
 sys.modules.setdefault("langgraph", langgraph_mod)
 sys.modules.setdefault("langgraph.prebuilt", prebuilt_mod)
+
+ollama_mod = types.ModuleType("ollama")
+
+
+def _ollama_chat(*args, **kwargs):
+    class R:
+        def __init__(self) -> None:
+            self.message = types.SimpleNamespace(content="")
+
+    yield R()
+
+
+ollama_mod.chat = _ollama_chat
+ollama_mod.ChatResponse = object
+sys.modules.setdefault("ollama", ollama_mod)
+
+playwright_mod = types.ModuleType("playwright")
+async_api_mod = types.ModuleType("async_api")
+sync_api_mod = types.ModuleType("sync_api")
+async_api_mod.async_playwright = lambda: None
+sync_api_mod.sync_playwright = lambda: None
+playwright_mod.async_api = async_api_mod
+playwright_mod.sync_api = sync_api_mod
+sys.modules.setdefault("playwright", playwright_mod)
+sys.modules.setdefault("playwright.async_api", async_api_mod)
+sys.modules.setdefault("playwright.sync_api", sync_api_mod)
+
+web_mod = types.ModuleType("web")
+
+
+def _web_run(*args, **kwargs):
+    return ""
+
+
+web_mod.run = _web_run
+sys.modules.setdefault("web", web_mod)
