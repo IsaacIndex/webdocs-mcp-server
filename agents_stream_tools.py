@@ -47,7 +47,7 @@ PLANNER_PROMPT = (
 EXECUTOR_PROMPT = (
     "You are the execution agent for {tool}. "
     "Given the query and the previous tool output, return a single tool call in "
-    "<tool>{{\"name\": \"{tool}\", \"args\": {...}}</tool>. "
+    "<tool>{{\"name\": \"{tool}\", \"args\": {{}}}}</tool>. "
     "Do not put the <tool> tag inside <think>."
 )
 
@@ -83,8 +83,6 @@ class StreamingAgent:
                 output_buffer += text
                 console.print(text, end="", style="green")
         console.print()
-        if output_buffer:
-            logger.info("agent output: %s", output_buffer)
         return output_buffer
 
     def define_plan(self) -> List[str]:
